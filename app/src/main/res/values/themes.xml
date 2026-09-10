@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Compose owns the real colors; this theme only sets the window shell
-         (background, no action bar) for light mode. values-night overrides it. -->
     <style name="Theme.Lingua" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/window_background</item>
+    </style>
+
+    <!-- Dialog-like window for the "translate selected text" popup: transparent host, no dim
+         (Compose draws its own scrim) so the source app stays visible behind it. -->
+    <style name="Theme.Lingua.ProcessText" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
     </style>
 </resources>

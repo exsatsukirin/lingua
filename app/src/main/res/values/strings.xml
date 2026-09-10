@@ -197,6 +197,12 @@
     <string name="settings_prompt_preview_builtin">Built-in — read-only</string>
     <string name="settings_prompt_preview_custom">Your additional instructions</string>
 
+    <!-- Process text (share-sheet style popup) -->
+    <string name="process_text_source_label">Selected text</string>
+    <string name="process_text_translating">Translating…</string>
+    <string name="process_text_empty">No text was selected.</string>
+    <string name="process_text_actions">Actions</string>
+
     <!-- Provider presets -->
     <string name="preset_openai">OpenAI</string>
     <string name="preset_deepseek">DeepSeek</string>

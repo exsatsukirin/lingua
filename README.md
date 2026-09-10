@@ -18,6 +18,7 @@ OpenAI 兼容端点（OpenAI、DeepSeek、Moonshot、硅基流动、Ollama、LM 
 | API 配置可编辑 | 多套配置档案，预置服务商，Base URL / API Key / 模型 / 温度 / 超时 / JSON 模式 / 自定义请求头 |
 | 提示词可定制 | 内置提示词只读不可改（承载 JSON 输出契约），可在其后追加自己的指令，并可预览实际发送的完整提示词 |
 | API 测试 | 连接测试（含 `/models` 探测）、真实翻译测试、模型列表拉取、原始响应查看 |
+| 划词翻译 | 在其他应用里选中文本，系统选区菜单中选「灵译」，即可就地弹出译文，无需切换应用 |
 | API Key 加密 | AndroidKeyStore AES/GCM 加密后落盘，且从备份中排除 |
 | 中英双语界面 | 默认英文，`values-zh-rCN` 提供完整简体中文 |
 
@@ -150,6 +151,31 @@ UI (Compose)  →  ViewModel (StateFlow)  →  TranslationRepository ─┬→ L
 - API Key 与普通设置分开存放：`settings` 与 `secrets` 两个 DataStore 文件，
   后者被 `backup_rules.xml` / `data_extraction_rules.xml` 排除（Keystore 密钥不可跨设备恢复）。
 - Room v1 未写迁移，因此**未**开启 `fallbackToDestructiveMigration`；升版需补 `Migration`。
+
+## 划词翻译（ACTION_PROCESS_TEXT）
+
+在任意应用里选中一段文本 → 系统选区菜单 → 「灵译」，即可在不离开当前应用的情况下看到译文。
+
+实现要点：
+
+- `ProcessTextActivity` 声明 `android.intent.action.PROCESS_TEXT` + `text/plain` 的 intent-filter，
+  读取 `Intent.EXTRA_PROCESS_TEXT`；`android:label` 就是菜单里显示的名字。
+- 该 Activity 用 `Theme.Lingua.ProcessText`（透明窗口、不额外压暗），Compose 自己画半透明遮罩，
+  所以源应用仍然可见，用户不会丢失上下文。
+- 弹窗内可复制、分享、收藏、关闭；点击遮罩或按返回键即关闭。
+- 翻译走的是同一个 `TranslationRepository`，因此**接口配置、目标语言、自定义提示词、
+  自动保存历史全部沿用**，翻译结果也会进历史。
+- 若尚未配置 API，弹窗会给出「去设置」按钮直接跳到应用，不会成为死路。
+- 空选区不会弹出窗口，Activity 直接结束。
+
+**已知限制**（平台/第三方应用行为，非本应用可控）：
+
+| 场景 | 是否能出现「灵译」 |
+| --- | --- |
+| 基于原生 `TextView` / `EditText` 的应用（设置、大多数工具类应用） | ✅ 在选区工具栏的 `⋮` 溢出菜单里 |
+| WebView 里的网页文本 | ❌ 多数 WebView 使用自绘菜单，不加载 PROCESS_TEXT 项 |
+| 自带选区工具栏的应用（部分浏览器、Flutter 应用） | ❌ |
+| Compose `SelectionContainer` 的文本 | ❌ Compose 的浮动工具栏不加载 PROCESS_TEXT 项 |
 
 ## 明文流量
 

@@ -25,6 +25,26 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          "Translate this" entry in any app's text-selection toolbar.
+          The label below is what the system shows in that menu; the activity itself
+          renders a dialog-style popup so the user never leaves the source app.
+        -->
+        <activity
+            android:name=".ui.processtext.ProcessTextActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:noHistory="true"
+            android:theme="@style/Theme.Lingua.ProcessText">
+            <intent-filter>
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

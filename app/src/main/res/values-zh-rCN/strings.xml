@@ -197,6 +197,12 @@
     <string name="settings_prompt_preview_builtin">内置部分（只读）</string>
     <string name="settings_prompt_preview_custom">自定义补充部分</string>
 
+    <!-- Process text (share-sheet style popup) -->
+    <string name="process_text_source_label">选中文本</string>
+    <string name="process_text_translating">翻译中…</string>
+    <string name="process_text_empty">没有选中任何文本。</string>
+    <string name="process_text_actions">操作</string>
+
     <!-- Provider presets -->
     <string name="preset_openai">OpenAI</string>
     <string name="preset_deepseek">DeepSeek</string>
