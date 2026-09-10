@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  On-device acceptance journey for Lingua.
+
+  Preconditions:
+    * the mock endpoint is running:  python3 tools/mock_llm_server.py
+    * it is reachable from the app:  adb reverse tcp:8765 tcp:8765
+    * an API profile exists with base URL http://127.0.0.1:8765/v1, key test-key,
+      model mock-translate (tools/drive_ui.sh setup-profile)
+-->
+<journey name="Lingua end-to-end">
+  <description>
+    Verifies translating, source-language detection, history persistence, the API editor's
+    connection test, theme switching and error reporting against the local mock endpoint.
+  </description>
+  <actions>
+    <action>Launch Lingua from the launcher</action>
+    <action>Verify the Translate screen is shown with a source text field and a Translate button</action>
+
+    <action>Tap the example suggestion "The early bird catches the worm."</action>
+    <action>Tap the Translate button</action>
+    <action>Verify the translation "早起的鸟儿有虫吃。" is displayed</action>
+    <action>Verify a detected-language label "English" is displayed next to the source field</action>
+
+    <action>Open the History tab</action>
+    <action>Verify the entry "The early bird catches the worm." is listed under "Today"</action>
+    <action>Type "bird" into the history search field</action>
+    <action>Verify the entry is still listed</action>
+    <action>Replace the search text with "zzz"</action>
+    <action>Verify the empty state "No matches" is displayed</action>
+    <action>Clear the search field</action>
+    <action>Favorite the entry</action>
+    <action>Swipe the entry from right to left to delete it</action>
+    <action>Verify the "Deleted" snackbar appears with an Undo action</action>
+    <action>Tap Undo</action>
+    <action>Verify the entry is listed again</action>
+
+    <action>Force-stop Lingua and launch it again from the launcher</action>
+    <action>Open the History tab</action>
+    <action>Verify the entry is still listed and still marked as a favorite</action>
+
+    <action>Open the Settings tab</action>
+    <action>Verify the endpoint card "Mock" is shown and marked as active</action>
+    <action>Tap Edit on the endpoint card</action>
+    <action>Verify the editor is titled "Edit endpoint" and the base URL field contains "http://127.0.0.1:8765/v1"</action>
+    <action>Tap "Test connection"</action>
+    <action>Verify a success result is shown with a latency in milliseconds</action>
+    <action>Tap "Test translation"</action>
+    <action>Verify the response contains "你好，世界！"</action>
+
+    <action>Change the model field to "error-401"</action>
+    <action>Tap "Test connection"</action>
+    <action>Verify the result reports failure with an HTTP 401 message</action>
+    <action>Change the model field back to "mock-translate"</action>
+    <action>Tap Save</action>
+
+    <action>Verify the Settings screen shows the endpoint card "Mock" with model "mock-translate"</action>
+    <action>Set the theme to "Light"</action>
+    <action>Verify the interface is rendered in light colors and all text remains readable</action>
+    <action>Set the theme back to "Follow system"</action>
+  </actions>
+</journey>

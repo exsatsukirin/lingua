@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+   API keys are stored encrypted with an AndroidKeyStore key. That key is
+   device-bound and never backed up, so restoring the encrypted blob on
+   another device would be useless (and needlessly exposes ciphertext).
+   The secrets DataStore file is therefore excluded from backup; the
+   translation history and non-secret settings are still backed up.
+-->
+<full-backup-content>
+    <exclude domain="file" path="datastore/secrets.preferences_pb" />
+</full-backup-content>

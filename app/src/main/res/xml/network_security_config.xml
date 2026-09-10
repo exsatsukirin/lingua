@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lingua talks to user-supplied LLM endpoints. Self-hosted servers
+  (Ollama, LM Studio, llama.cpp, a LAN gateway) are usually plain HTTP,
+  so cleartext is permitted. Traffic to public HTTPS endpoints is still
+  TLS and is unaffected by this setting.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

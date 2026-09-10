@@ -1,0 +1,185 @@
+<resources>
+
+    <string name="app_name">Lingua</string>
+
+    <!-- Navigation -->
+    <string name="tab_translate">Translate</string>
+    <string name="tab_history">History</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Translate screen -->
+    <string name="translate_title">Translate</string>
+    <string name="translate_source_hint">Enter text to translate</string>
+    <string name="translate_clear">Clear</string>
+    <string name="translate_paste">Paste</string>
+    <string name="translate_target_label">Translate into</string>
+    <string name="translate_source_label">From</string>
+    <string name="translate_action">Translate</string>
+    <string name="translate_retranslate">Translate again</string>
+    <string name="translate_swap">Swap languages</string>
+    <string name="translate_detected">Detected: %1$s</string>
+    <string name="translate_char_counter">%1$d / %2$d</string>
+    <string name="translate_too_long">Text is too long. Limit is %1$d characters.</string>
+    <string name="translate_same_language_hint">Source and target look the same — the text may come back unchanged.</string>
+    <string name="translate_manual_source">Choose source language</string>
+    <string name="translate_result_title">Translation</string>
+    <string name="translate_empty_title">Nothing to translate yet</string>
+    <string name="translate_empty_body">Type or paste text above, then tap Translate.</string>
+    <string name="translate_example_hint">Try an example</string>
+    <string name="translate_example_one">The early bird catches the worm.</string>
+    <string name="translate_example_two">今天天气很好，我们去公园散步吧。</string>
+    <string name="translate_copy">Copy</string>
+    <string name="translate_copied">Copied to clipboard</string>
+    <string name="translate_share">Share</string>
+    <string name="translate_favorite">Favorite</string>
+    <string name="translate_unfavorite">Remove from favorites</string>
+    <string name="translate_save">Save to history</string>
+    <string name="translate_saved">Saved to history</string>
+    <string name="translate_no_profile_title">No API endpoint configured</string>
+    <string name="translate_no_profile_body">Add your LLM endpoint to start translating.</string>
+    <string name="translate_no_profile_action">Open settings</string>
+
+    <!-- History -->
+    <string name="history_title">History</string>
+    <string name="history_search_hint">Search history</string>
+    <string name="history_filter_all">All</string>
+    <string name="history_filter_favorites">Favorites</string>
+    <string name="history_empty_title">No history yet</string>
+    <string name="history_empty_body">Translations you make will show up here.</string>
+    <string name="history_empty_search_title">No matches</string>
+    <string name="history_empty_search_body">Try a different search term or filter.</string>
+    <string name="history_group_today">Today</string>
+    <string name="history_group_yesterday">Yesterday</string>
+    <string name="history_group_earlier">Earlier</string>
+    <string name="history_clear">Clear history</string>
+    <string name="history_clear_confirm_title">Clear all history?</string>
+    <string name="history_clear_confirm_body">This removes every saved translation and cannot be undone.</string>
+    <string name="history_deleted">Translation deleted</string>
+    <string name="history_undo">Undo</string>
+    <string name="history_delete">Delete</string>
+    <string name="history_detail_title">Details</string>
+    <string name="history_load_more">Load more</string>
+    <string name="history_source_label">Original</string>
+    <string name="history_target_label">Translation</string>
+    <string name="history_copy_source">Copy original</string>
+    <string name="history_copy_translation">Copy translation</string>
+    <string name="history_meta">%1$s · %2$s</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">Follow system</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_dynamic_color">Dynamic color</string>
+    <string name="settings_dynamic_color_summary">Use colors from your wallpaper (Android 12+)</string>
+    <string name="settings_section_translation">Translation</string>
+    <string name="settings_default_target">Default target language</string>
+    <string name="settings_auto_save">Save translations automatically</string>
+    <string name="settings_auto_save_summary">Keep every successful translation in history</string>
+    <string name="settings_section_api">API endpoints</string>
+    <string name="settings_api_empty">No endpoints yet. Add one to start translating.</string>
+    <string name="settings_api_add">Add endpoint</string>
+    <string name="settings_api_edit">Edit</string>
+    <string name="settings_api_delete">Delete</string>
+    <string name="settings_api_active">Active</string>
+    <string name="settings_api_use">Use this one</string>
+    <string name="settings_delete_profile_confirm_title">Delete this endpoint?</string>
+    <string name="settings_delete_profile_confirm_body">“%1$s” will be removed together with its stored API key.</string>
+    <string name="settings_profile_subtitle">%1$s · %2$s</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_about_summary">Translate through your own LLM endpoint. No text ever touches a service you did not choose.</string>
+
+    <!-- API profile editor -->
+    <string name="api_editor_new_title">New endpoint</string>
+    <string name="api_editor_edit_title">Edit endpoint</string>
+    <string name="api_editor_save">Save</string>
+    <string name="api_editor_delete">Delete endpoint</string>
+    <string name="api_editor_preset">Provider preset</string>
+    <string name="api_editor_name">Name</string>
+    <string name="api_editor_name_hint">e.g. My DeepSeek</string>
+    <string name="api_editor_base_url">Base URL</string>
+    <string name="api_editor_base_url_hint">https://api.openai.com/v1</string>
+    <string name="api_editor_base_url_helper">Requests go to {base}/chat/completions. Paste a full URL ending in /chat/completions for Azure-style endpoints.</string>
+    <string name="api_editor_api_key">API key</string>
+    <string name="api_editor_api_key_hint">sk-…</string>
+    <string name="api_editor_api_key_helper">Stored encrypted with the Android keystore.</string>
+    <string name="api_editor_api_key_missing">The stored key could not be decrypted — please enter it again.</string>
+    <string name="api_editor_show_key">Show key</string>
+    <string name="api_editor_hide_key">Hide key</string>
+    <string name="api_editor_model">Model</string>
+    <string name="api_editor_model_hint">gpt-4o-mini</string>
+    <string name="api_editor_fetch_models">Fetch models</string>
+    <string name="api_editor_fetch_models_ok">Loaded %1$d models</string>
+    <string name="api_editor_advanced">Advanced</string>
+    <string name="api_editor_temperature">Temperature</string>
+    <string name="api_editor_timeout">Timeout (seconds)</string>
+    <string name="api_editor_json_mode">Request JSON output</string>
+    <string name="api_editor_json_mode_summary">Falls back automatically if the endpoint rejects it</string>
+    <string name="api_editor_headers">Custom headers</string>
+    <string name="api_editor_headers_hint">One per line, for example:\nX-Api-Version: 2024-02-01</string>
+    <string name="api_editor_validation_name">Give this endpoint a name.</string>
+    <string name="api_editor_validation_url">Enter a valid http(s) URL.</string>
+    <string name="api_editor_validation_model">Enter a model name.</string>
+    <string name="api_editor_unsaved_title">Discard changes?</string>
+    <string name="api_editor_unsaved_body">Your edits will not be saved.</string>
+
+    <!-- API tests -->
+    <string name="api_test_section">Test</string>
+    <string name="api_test_connection">Test connection</string>
+    <string name="api_test_translation">Test translation</string>
+    <string name="api_test_sample_text">Hello, world!</string>
+    <string name="api_test_success">Success</string>
+    <string name="api_test_failure">Failed</string>
+    <string name="api_test_latency">%1$d ms</string>
+    <string name="api_test_models">Models endpoint: %1$s</string>
+    <string name="api_test_models_available">available</string>
+    <string name="api_test_models_unavailable">not available</string>
+    <string name="api_test_reply">Response</string>
+    <string name="api_test_show_raw">Show raw response</string>
+    <string name="api_test_hide_raw">Hide raw response</string>
+
+    <!-- Errors -->
+    <string name="error_no_profile">Add an API endpoint in settings first.</string>
+    <string name="error_missing_key">Add an API key for this endpoint.</string>
+    <string name="error_invalid_url">The base URL is not valid.</string>
+    <string name="error_unauthorized">The API key was rejected (HTTP %1$d).</string>
+    <string name="error_not_found">Endpoint or model not found (HTTP %1$d).</string>
+    <string name="error_bad_request">The endpoint rejected the request (HTTP %1$d).</string>
+    <string name="error_rate_limited">Rate limited. Try again shortly.</string>
+    <string name="error_server">The service returned an error (HTTP %1$d).</string>
+    <string name="error_timeout">The request timed out.</string>
+    <string name="error_network">Network unreachable. Check your connection.</string>
+    <string name="error_invalid_response">The endpoint returned something unexpected.</string>
+    <string name="error_cancelled">Request cancelled.</string>
+    <string name="error_unknown">Something went wrong.</string>
+    <string name="error_detail">Details</string>
+
+    <!-- Language picker -->
+    <string name="language_picker_target_title">Target language</string>
+    <string name="language_picker_source_title">Source language</string>
+    <string name="language_picker_search">Search languages</string>
+    <string name="language_picker_empty">No languages match</string>
+    <string name="language_auto">Auto detect</string>
+
+    <!-- Common -->
+    <string name="action_cancel">Cancel</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_close">Close</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_expand">Expand</string>
+    <string name="cd_collapse">Collapse</string>
+
+    <!-- Provider presets -->
+    <string name="preset_openai">OpenAI</string>
+    <string name="preset_deepseek">DeepSeek</string>
+    <string name="preset_moonshot">Moonshot</string>
+    <string name="preset_siliconflow">SiliconFlow</string>
+    <string name="preset_ollama">Ollama</string>
+    <string name="preset_custom">Custom</string>
+
+</resources>
