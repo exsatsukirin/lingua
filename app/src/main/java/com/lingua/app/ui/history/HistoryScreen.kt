@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
@@ -381,8 +383,14 @@ private fun HistoryDetailSheet(
   val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
   ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    // The sheet wraps its content when the record is short, but must scroll once the text is taller
+    // than the screen — otherwise a long translation is clipped and unreachable on small devices.
     Column(
-      modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp),
+      modifier =
+        Modifier.fillMaxWidth()
+          .verticalScroll(rememberScrollState())
+          .padding(horizontal = 24.dp)
+          .padding(bottom = 32.dp),
       verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
       Text(text = stringResource(R.string.history_detail_title), style = MaterialTheme.typography.titleMedium)
