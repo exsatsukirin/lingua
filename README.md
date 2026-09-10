@@ -164,3 +164,8 @@ UI (Compose)  →  ViewModel (StateFlow)  →  TranslationRepository ─┬→ L
 - `material-icons-extended` 使得 debug APK 偏大（约 21 MB）；release 构建开启 R8 后会自动裁剪。
 - 单元测试覆盖纯逻辑（解析、URL、状态机、表单）；ViewModel 与 Repository 的协作目前由
   `journeys/lingua_journey.xml` 在真机上覆盖。
+
+## 许可证
+
+[MIT License](LICENSE) © 2026 exsatsukirin
+
