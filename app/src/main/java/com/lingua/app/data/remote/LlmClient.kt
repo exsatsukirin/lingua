@@ -96,7 +96,7 @@ class LlmClient(
       val request = baseRequest(profile, EndpointResolver.models(profile.baseUrl)).get().build()
       executeWithTimeout(profile, request).use { response ->
         val body = response.body.string()
-        if (!response.isSuccessful) throw httpError(response.code, body)
+        if (!response.isSuccessful) throw httpError(response.code, body, keyIsBlank = profile.apiKey.isBlank())
         runCatching { json.decodeFromString<ModelsResponse>(body).data.map { it.id } }
           .getOrElse { throw LlmError.InvalidResponse(body.truncateForDisplay()) }
       }
@@ -153,7 +153,7 @@ class LlmClient(
     executeWithTimeout(profile, request).use { response ->
       val body = response.body.string()
       val latencyMs = (System.nanoTime() - startedAt) / 1_000_000
-      if (!response.isSuccessful) throw httpError(response.code, body)
+      if (!response.isSuccessful) throw httpError(response.code, body, keyIsBlank = profile.apiKey.isBlank())
 
       val decoded =
         runCatching { json.decodeFromString<ChatCompletionResponse>(body) }
@@ -191,11 +191,19 @@ class LlmClient(
     }
   }
 
-  private fun httpError(code: Int, body: String): LlmError {
+  /**
+   * Maps a non-2xx response onto a typed error.
+   *
+   * A 401/403 with no configured key is reported as [LlmError.MissingApiKey] rather than a rejection:
+   * the user simply has not filled the field in yet. Endpoints that need no key (Ollama, LM Studio)
+   * are unaffected because they never answer 401.
+   */
+  internal fun httpError(code: Int, body: String, keyIsBlank: Boolean = false): LlmError {
     val detail = body.truncateForDisplay()
     val apiMessage = runCatching { json.decodeFromString<ApiErrorEnvelope>(body).error?.message }.getOrNull()
     val message = apiMessage?.truncateForDisplay(500) ?: detail
     return when {
+      (code == 401 || code == 403) && keyIsBlank -> LlmError.MissingApiKey
       code == 401 || code == 403 -> LlmError.Unauthorized(code, message)
       code == 404 -> LlmError.ModelOrEndpointNotFound(code, message)
       code == 429 -> LlmError.RateLimited(code, message)
