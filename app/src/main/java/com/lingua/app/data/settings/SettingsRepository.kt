@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.lingua.app.data.crypto.SecretCipher
+import com.lingua.app.data.remote.PromptBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -57,6 +58,10 @@ class SettingsRepository(
   suspend fun setAutoSaveHistory(enabled: Boolean) = mutate { it.copy(autoSaveHistory = enabled) }
 
   suspend fun setHistoryFavoritesOnly(enabled: Boolean) = mutate { it.copy(historySearchFavoritesOnly = enabled) }
+
+  /** Stores the user's extra prompt instructions; blank clears them so only the built-in applies. */
+  suspend fun setCustomPrompt(prompt: String) =
+    mutate { it.copy(customPrompt = prompt.trim().take(PromptBuilder.MAX_CUSTOM_PROMPT_LENGTH)) }
 
   suspend fun setActiveProfile(id: String?) = mutate { it.copy(activeProfileId = id) }
 

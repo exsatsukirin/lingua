@@ -31,15 +31,23 @@ class TranslationRepository(
     val profile = settings.activeProfile ?: return Result.failure(NoActiveProfile)
     val trimmed = sourceText.trim()
 
-    return llmClient.translate(profile, trimmed, target, sourceOverride).map { outcome ->
-      val recordId =
-        if (settings.autoSaveHistory) {
-          save(outcome, trimmed, target, profile.displayName)
-        } else {
-          null
-        }
-      TranslationResult(outcome = outcome, savedRecordId = recordId)
-    }
+    return llmClient
+      .translate(
+        profile = profile,
+        text = trimmed,
+        target = target,
+        sourceOverride = sourceOverride,
+        customInstructions = settings.customPrompt,
+      )
+      .map { outcome ->
+        val recordId =
+          if (settings.autoSaveHistory) {
+            save(outcome, trimmed, target, profile.displayName)
+          } else {
+            null
+          }
+        TranslationResult(outcome = outcome, savedRecordId = recordId)
+      }
   }
 
   /** Saves a result the user asked to keep explicitly. Returns the new row id. */

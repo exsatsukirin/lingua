@@ -174,6 +174,27 @@
     <string name="cd_expand">展开</string>
     <string name="cd_collapse">收起</string>
 
+    <!-- Prompt -->
+    <string name="settings_section_prompt">提示词</string>
+    <string name="settings_prompt_builtin">内置提示词</string>
+    <string name="settings_prompt_builtin_summary">由应用固定 · 只读</string>
+    <string name="settings_prompt_custom">自定义补充提示词</string>
+    <string name="settings_prompt_custom_empty">未设置，仅发送内置提示词</string>
+    <string name="settings_prompt_counter">%1$d / %2$d</string>
+    <string name="settings_prompt_edit_title">自定义补充提示词</string>
+    <string name="settings_prompt_edit_helper">追加在内置提示词之后，每次翻译都会发送；不能改变内置的 JSON 输出格式。</string>
+    <string name="settings_prompt_edit_hint">例如：使用正式书面语，产品名保留英文。</string>
+    <string name="settings_prompt_examples">示例</string>
+    <string name="settings_prompt_example_formal">使用正式书面语。</string>
+    <string name="settings_prompt_example_tech">这是技术文档，API 名称与代码标识符保留英文。</string>
+    <string name="settings_prompt_example_short">译文保持简洁，不要添加解释。</string>
+    <string name="settings_prompt_clear">清除</string>
+    <string name="settings_prompt_too_long">上限为 %1$d 个字符。</string>
+    <string name="settings_prompt_preview_title">提示词预览</string>
+    <string name="settings_prompt_preview_helper">以下是为当前目标语言实际发送给模型的完整提示词。</string>
+    <string name="settings_prompt_preview_builtin">内置部分（只读）</string>
+    <string name="settings_prompt_preview_custom">自定义补充部分</string>
+
     <!-- Provider presets -->
     <string name="preset_openai">OpenAI</string>
     <string name="preset_deepseek">DeepSeek</string>

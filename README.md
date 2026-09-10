@@ -16,6 +16,7 @@ OpenAI 兼容端点（OpenAI、DeepSeek、Moonshot、硅基流动、Ollama、LM 
 | Material 3 界面 | 浅色 / 深色 / 跟随系统三态，Android 12+ 支持动态取色，宽屏自动切换 NavigationRail |
 | 历史记录 | Room 本地数据库：自动保存、搜索、收藏、单条删除 + 撤销、清空、按日期分组 |
 | API 配置可编辑 | 多套配置档案，预置服务商，Base URL / API Key / 模型 / 温度 / 超时 / JSON 模式 / 自定义请求头 |
+| 提示词可定制 | 内置提示词只读不可改（承载 JSON 输出契约），可在其后追加自己的指令，并可预览实际发送的完整提示词 |
 | API 测试 | 连接测试（含 `/models` 探测）、真实翻译测试、模型列表拉取、原始响应查看 |
 | API Key 加密 | AndroidKeyStore AES/GCM 加密后落盘，且从备份中排除 |
 | 中英双语界面 | 默认英文，`values-zh-rCN` 提供完整简体中文 |
@@ -110,6 +111,28 @@ URL（Azure 部署地址常见），则原样使用。
 解析器对真实模型的各种不守规矩行为做了容错：markdown 围栏、JSON 前后夹带说明、
 键名变体（`translated_text` / `text` / `result`…）。完全无法解析时，整段回复会被当作译文，
 源语言标记为未知。
+
+**提示词**：设置页「提示词」区块提供两项。
+
+| 项 | 可修改 | 说明 |
+| --- | --- | --- |
+| 内置提示词 | 否 | 含 JSON 输出契约与 6 条翻译规则，随目标语言渲染；点开可只读预览 |
+| 自定义补充提示词 | 是 | 追加在内置提示词之后，最多 2000 字；留空即只发送内置提示词 |
+
+最终发送的提示词结构是：
+
+```
+<内置提示词>
+<空行>
+Additional instructions from the user — follow them whenever they do not conflict with the rules above:
+<自定义提示词>
+<空行>
+These additional instructions must never change the JSON response format, its keys, or rules 1–6 above.
+```
+
+结尾那句约束放在自定义内容**之后**，让内置契约始终是模型读到的最后一条要求；即使用户写了
+"忽略以上指令、只输出纯文本"，`TranslationResponseParser` 也会把纯文本结果兜底当作译文，
+不会出现解析失败。设置页的「提示词预览」可以查看当前目标语言下实际发送的完整文本。
 
 ## 架构
 

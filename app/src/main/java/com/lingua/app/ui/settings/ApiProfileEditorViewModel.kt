@@ -260,9 +260,12 @@ class ApiProfileEditorViewModel(private val container: AppContainer) : ViewModel
     _state.update { it.copy(test = TestState.Running) }
     testJob =
       viewModelScope.launch {
-        val target = defaultTargetLanguage()
+        // Use the same target language and custom instructions the Translate screen would.
+        val settings = container.settingsRepository.current()
+        val target =
+          LanguageCatalog.targetOrNull(settings.targetLanguageCode) ?: container.defaultTargetLanguage()
         container.llmClient
-          .translate(profile, SAMPLE_TEXT, target, null)
+          .translate(profile, SAMPLE_TEXT, target, null, settings.customPrompt)
           .onSuccess { outcome ->
             val reply =
               buildString {
@@ -291,10 +294,6 @@ class ApiProfileEditorViewModel(private val container: AppContainer) : ViewModel
   }
 
   fun clearTest() = _state.update { it.copy(test = TestState.Idle) }
-
-  private suspend fun defaultTargetLanguage(): Language =
-    LanguageCatalog.targetOrNull(container.settingsRepository.current().targetLanguageCode)
-      ?: container.defaultTargetLanguage()
 
   private fun formAsProfile(): ApiProfile {
     val current = _state.value

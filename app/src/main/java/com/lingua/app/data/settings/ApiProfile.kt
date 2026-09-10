@@ -61,6 +61,11 @@ data class AppSettings(
   val dynamicColor: Boolean = true,
   val autoSaveHistory: Boolean = true,
   val historySearchFavoritesOnly: Boolean = false,
+  /**
+   * User instructions appended to the immutable built-in prompt. Empty means "built-in only".
+   * Added after v1 shipped: the default keeps older stored settings readable.
+   */
+  val customPrompt: String = "",
 ) {
   val activeProfile: ApiProfile?
     get() = profiles.firstOrNull { it.id == activeProfileId } ?: profiles.firstOrNull()

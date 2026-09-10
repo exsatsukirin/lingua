@@ -186,6 +186,7 @@ private fun HomeShell(container: AppContainer, onOpenApiEditor: (String?) -> Uni
                 onDynamicColor = settingsViewModel::setDynamicColor,
                 onAutoSave = settingsViewModel::setAutoSaveHistory,
                 onTargetLanguage = settingsViewModel::setTargetLanguage,
+                onCustomPrompt = settingsViewModel::setCustomPrompt,
                 onSetActiveProfile = settingsViewModel::setActiveProfile,
                 onDeleteProfile = settingsViewModel::deleteProfile,
                 onEditProfile = { profile -> onOpenApiEditor(profile.id) },

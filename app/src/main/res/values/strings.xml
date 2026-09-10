@@ -174,6 +174,27 @@
     <string name="cd_expand">Expand</string>
     <string name="cd_collapse">Collapse</string>
 
+    <!-- Prompt -->
+    <string name="settings_section_prompt">Prompt</string>
+    <string name="settings_prompt_builtin">Built-in prompt</string>
+    <string name="settings_prompt_builtin_summary">Fixed by the app · read-only</string>
+    <string name="settings_prompt_custom">Your additional instructions</string>
+    <string name="settings_prompt_custom_empty">Not set — only the built-in prompt is sent</string>
+    <string name="settings_prompt_counter">%1$d / %2$d</string>
+    <string name="settings_prompt_edit_title">Your additional instructions</string>
+    <string name="settings_prompt_edit_helper">Appended after the built-in prompt. It is sent with every translation and cannot change the built-in JSON output format.</string>
+    <string name="settings_prompt_edit_hint">e.g. Use formal written Chinese and keep product names in English.</string>
+    <string name="settings_prompt_examples">Examples</string>
+    <string name="settings_prompt_example_formal">Use formal written language.</string>
+    <string name="settings_prompt_example_tech">This is technical documentation; keep API names and code identifiers in English.</string>
+    <string name="settings_prompt_example_short">Keep the translation concise, no added explanations.</string>
+    <string name="settings_prompt_clear">Clear</string>
+    <string name="settings_prompt_too_long">Limit is %1$d characters.</string>
+    <string name="settings_prompt_preview_title">Prompt preview</string>
+    <string name="settings_prompt_preview_helper">This is exactly what gets sent to the model for the current target language.</string>
+    <string name="settings_prompt_preview_builtin">Built-in — read-only</string>
+    <string name="settings_prompt_preview_custom">Your additional instructions</string>
+
     <!-- Provider presets -->
     <string name="preset_openai">OpenAI</string>
     <string name="preset_deepseek">DeepSeek</string>

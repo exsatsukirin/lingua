@@ -65,11 +65,15 @@ class LlmClient(
     text: String,
     target: Language,
     sourceOverride: Language? = null,
+    customInstructions: String? = null,
   ): Result<TranslationOutcome> =
     runRequest {
       val messages =
         listOf(
-          ChatMessage(role = "system", content = PromptBuilder.systemPrompt(target, sourceOverride)),
+          ChatMessage(
+            role = "system",
+            content = PromptBuilder.systemPrompt(target, sourceOverride, customInstructions),
+          ),
           ChatMessage(role = "user", content = text),
         )
       val completion = chatCompletion(profile, messages)

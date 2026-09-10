@@ -67,6 +67,7 @@ fun SettingsScreen(
   onDynamicColor: (Boolean) -> Unit,
   onAutoSave: (Boolean) -> Unit,
   onTargetLanguage: (Language) -> Unit,
+  onCustomPrompt: (String) -> Unit,
   onSetActiveProfile: (ApiProfile) -> Unit,
   onDeleteProfile: (ApiProfile) -> Unit,
   onEditProfile: (ApiProfile) -> Unit,
@@ -150,6 +151,14 @@ fun SettingsScreen(
           )
         }
       }
+
+      SectionHeader(stringResource(R.string.settings_section_prompt))
+
+      PromptSection(
+        settings = state.settings,
+        targetLanguage = state.targetLanguage,
+        onCustomPromptChange = onCustomPrompt,
+      )
 
       SectionHeader(stringResource(R.string.settings_section_api))
 

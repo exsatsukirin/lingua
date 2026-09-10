@@ -53,6 +53,11 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     viewModelScope.launch { container.settingsRepository.setTargetLanguage(language.code) }
   }
 
+  /** Persists the user's extra prompt instructions; blank falls back to the built-in prompt only. */
+  fun setCustomPrompt(prompt: String) {
+    viewModelScope.launch { container.settingsRepository.setCustomPrompt(prompt) }
+  }
+
   fun setActiveProfile(profile: ApiProfile) {
     viewModelScope.launch { container.settingsRepository.setActiveProfile(profile.id) }
   }

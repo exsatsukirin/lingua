@@ -1,10 +1,13 @@
 package com.lingua.app.data.settings
 
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+
+private val lenientJson = Json { ignoreUnknownKeys = true }
 
 class ApiProfileTest {
 
@@ -61,6 +64,27 @@ class ApiProfileTest {
     assertTrue(settings.autoSaveHistory)
     assertTrue(settings.dynamicColor)
     assertFalse(settings.historySearchFavoritesOnly)
+  }
+
+  @Test
+  fun `custom prompt defaults to empty so only the built-in prompt is sent`() {
+    assertEquals("", AppSettings().customPrompt)
+  }
+
+  @Test
+  fun `settings written before custom prompt existed still decode`() {
+    val legacy =
+      """
+      {"profiles":[],"activeProfileId":null,"targetLanguageCode":"zh","themeMode":"Dark",
+       "dynamicColor":false,"autoSaveHistory":false,"historySearchFavoritesOnly":true}
+      """
+      .trimIndent()
+
+    val decoded = lenientJson.decodeFromString<AppSettings>(legacy)
+
+    assertEquals(ThemeMode.Dark, decoded.themeMode)
+    assertEquals("zh", decoded.targetLanguageCode)
+    assertEquals("", decoded.customPrompt)
   }
 
   @Test
