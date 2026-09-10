@@ -47,6 +47,21 @@ sealed interface TestState {
   data class Failure(val message: ErrorMessage, val detail: String?) : TestState
 }
 
+/**
+ * The editable fields of the form, independent of transient UI state. Comparing the current form
+ * against the snapshot taken when the editor loaded is what tells us whether there is unsaved work.
+ */
+data class ApiProfileForm(
+  val name: String = "",
+  val baseUrl: String = "",
+  val apiKey: String = "",
+  val model: String = "",
+  val temperature: Double = ApiProfile.DEFAULT_TEMPERATURE,
+  val timeoutSeconds: Int = ApiProfile.DEFAULT_TIMEOUT_SECONDS,
+  val jsonMode: Boolean = true,
+  val headersText: String = "",
+)
+
 data class ApiEditorUiState(
   val profileId: String? = null,
   val name: String = "",
@@ -64,6 +79,8 @@ data class ApiEditorUiState(
   val isFetchingModels: Boolean = false,
   val modelsMessage: String? = null,
   val saved: Boolean = false,
+  /** Snapshot of the form as loaded; `null` while an existing profile is still being read. */
+  val baseline: ApiProfileForm? = null,
 ) {
   val isEditing: Boolean get() = profileId != null
 
@@ -71,6 +88,22 @@ data class ApiEditorUiState(
 
   val endpointPreview: String
     get() = if (EndpointResolver.isValidBaseUrl(baseUrl)) EndpointResolver.chatCompletions(baseUrl) else ""
+
+  val form: ApiProfileForm
+    get() =
+      ApiProfileForm(
+        name = name,
+        baseUrl = baseUrl,
+        apiKey = apiKey,
+        model = model,
+        temperature = temperature,
+        timeoutSeconds = timeoutSeconds,
+        jsonMode = jsonMode,
+        headersText = headersText,
+      )
+
+  /** True when the user has changed something that a "save" would persist. */
+  val isDirty: Boolean get() = baseline != null && baseline != form
 }
 
 /**
@@ -90,28 +123,32 @@ class ApiProfileEditorViewModel(private val container: AppContainer) : ViewModel
     if (boundProfileId == profileId) return
     boundProfileId = profileId
     if (profileId == null) {
-      _state.value = ApiEditorUiState()
+      // A brand-new profile starts from a blank snapshot, so typing anything marks it dirty.
+      _state.value = ApiEditorUiState(baseline = ApiProfileForm())
       return
     }
+    // `baseline` stays null while loading, so a half-filled form is never mistaken for an edit.
     _state.value = ApiEditorUiState(profileId = profileId)
     viewModelScope.launch {
       val profile = container.settingsRepository.current().profiles.firstOrNull { it.id == profileId }
       if (profile == null) {
-        _state.value = ApiEditorUiState()
+        _state.value = ApiEditorUiState(baseline = ApiProfileForm())
         return@launch
       }
       _state.update {
-        it.copy(
-          name = profile.name,
-          baseUrl = profile.baseUrl,
-          apiKey = profile.apiKey,
-          model = profile.model,
-          temperature = profile.temperature,
-          timeoutSeconds = profile.timeoutSeconds,
-          jsonMode = profile.jsonMode,
-          headersText = profile.extraHeaders.joinToString("\n") { header -> "${header.name}: ${header.value}" },
-          keyDecryptFailed = profile.apiKey.isBlank(),
-        )
+        val loaded =
+          it.copy(
+            name = profile.name,
+            baseUrl = profile.baseUrl,
+            apiKey = profile.apiKey,
+            model = profile.model,
+            temperature = profile.temperature,
+            timeoutSeconds = profile.timeoutSeconds,
+            jsonMode = profile.jsonMode,
+            headersText = profile.extraHeaders.joinToString("\n") { header -> "${header.name}: ${header.value}" },
+            keyDecryptFailed = profile.apiKey.isBlank(),
+          )
+        loaded.copy(baseline = loaded.form)
       }
     }
   }
@@ -174,7 +211,19 @@ class ApiProfileEditorViewModel(private val container: AppContainer) : ViewModel
 
     viewModelScope.launch {
       container.settingsRepository.upsertProfile(profile)
-      _state.update { it.copy(profileId = profile.id, saved = true) }
+      _state.update { current ->
+        val saved =
+          current.copy(
+            profileId = profile.id,
+            name = profile.name,
+            baseUrl = profile.baseUrl,
+            apiKey = profile.apiKey,
+            model = profile.model,
+            saved = true,
+          )
+        // Re-baseline so the form is no longer considered dirty.
+        saved.copy(baseline = saved.form)
+      }
       onSaved()
     }
   }

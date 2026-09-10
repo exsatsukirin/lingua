@@ -1,5 +1,6 @@
 package com.lingua.app.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
@@ -7,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -94,9 +94,20 @@ fun ApiProfileEditorScreen(
   var apiKeyVisible by remember { mutableStateOf(false) }
   var advancedExpanded by remember { mutableStateOf(false) }
   var confirmDelete by remember { mutableStateOf(false) }
+  var confirmDiscard by remember { mutableStateOf(false) }
+
+  /** Everything that leaves the screen goes through here so unsaved work is never lost silently. */
+  fun attemptLeave() {
+    if (state.isDirty) confirmDiscard = true else onBack()
+  }
+
+  BackHandler(enabled = state.isDirty) { confirmDiscard = true }
 
   Scaffold(
     topBar = {
+      // Default window insets: the app bar owns the status-bar inset. Forcing it to zero here made
+      // the title and the Save action overlap the status bar. This screen is not nested inside the
+      // tab shell's Scaffold, so nothing else would have applied that inset.
       TopAppBar(
         title = {
           Text(
@@ -105,9 +116,8 @@ fun ApiProfileEditorScreen(
             )
           )
         },
-        windowInsets = WindowInsets(0, 0, 0, 0),
         navigationIcon = {
-          IconButton(onClick = onBack) {
+          IconButton(onClick = { attemptLeave() }) {
             Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.cd_back))
           }
         },
@@ -117,7 +127,6 @@ fun ApiProfileEditorScreen(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
       )
     },
-    contentWindowInsets = WindowInsets(0, 0, 0, 0),
   ) { padding ->
     Column(
       modifier =
@@ -298,6 +307,39 @@ fun ApiProfileEditorScreen(
       },
       dismissButton = {
         TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.action_cancel)) }
+      },
+    )
+  }
+
+  if (confirmDiscard) {
+    androidx.compose.material3.AlertDialog(
+      onDismissRequest = { confirmDiscard = false },
+      title = { Text(stringResource(R.string.api_editor_unsaved_title)) },
+      text = { Text(stringResource(R.string.api_editor_unsaved_body)) },
+      confirmButton = {
+        TextButton(
+          onClick = {
+            confirmDiscard = false
+            onSave()
+          }
+        ) {
+          Text(stringResource(R.string.api_editor_save))
+        }
+      },
+      dismissButton = {
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+          TextButton(
+            onClick = {
+              confirmDiscard = false
+              onBack()
+            }
+          ) {
+            Text(stringResource(R.string.api_editor_discard))
+          }
+          TextButton(onClick = { confirmDiscard = false }) {
+            Text(stringResource(R.string.api_editor_keep_editing))
+          }
+        }
       },
     )
   }

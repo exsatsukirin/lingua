@@ -120,11 +120,13 @@
     <string name="api_editor_json_mode_summary">Falls back automatically if the endpoint rejects it</string>
     <string name="api_editor_headers">Custom headers</string>
     <string name="api_editor_headers_hint">One per line, for example:\nX-Api-Version: 2024-02-01</string>
+    <string name="api_editor_unsaved_title">Save your changes?</string>
+    <string name="api_editor_unsaved_body">You have unsaved changes to this endpoint.</string>
+    <string name="api_editor_discard">Discard</string>
+    <string name="api_editor_keep_editing">Keep editing</string>
     <string name="api_editor_validation_name">Give this endpoint a name.</string>
     <string name="api_editor_validation_url">Enter a valid http(s) URL.</string>
     <string name="api_editor_validation_model">Enter a model name.</string>
-    <string name="api_editor_unsaved_title">Discard changes?</string>
-    <string name="api_editor_unsaved_body">Your edits will not be saved.</string>
 
     <!-- API tests -->
     <string name="api_test_section">Test</string>
