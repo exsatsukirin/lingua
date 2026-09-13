@@ -1,5 +1,6 @@
 package com.lingua.app.ui.screentranslate
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,18 +16,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lingua.app.LinguaApplication
+import com.lingua.app.capture.CaptureState
 import com.lingua.app.data.settings.ThemeMode
 import com.lingua.app.theme.LinguaTheme
 import com.lingua.app.ui.screenocr.ScreenOcrScreen
 import com.lingua.app.ui.screenocr.ScreenOcrViewModel
 
 /**
- * Screen translation started from the resident notification.
+ * Screen translation started from the resident notification or the floating ball.
  *
- * The window is transparent and draws nothing until a frame has been captured, which is the whole
- * point: whatever app the user was looking at stays visible underneath and is therefore what the
- * capture contains. Once there is an image (or a failure to report) the ordinary screen-text UI
- * takes over.
+ * The window is transparent and draws nothing until a frame is in hand: whatever app the user was
+ * looking at stays visible underneath, and the ball has already been taken down, so neither ends up
+ * inside the capture. Once there is an image (or a failure to report) the screen-text UI takes over
+ * in the same window.
  */
 class ScreenTranslateActivity : ComponentActivity() {
 
@@ -60,8 +62,8 @@ class ScreenTranslateActivity : ComponentActivity() {
           consent.launch(viewModel.consentIntent())
         }
 
-        // Invisible (the window is transparent) until there is something to show, so the captured
-        // pixels are the app underneath rather than this one.
+        // Nothing is drawn (the window is transparent) until there is something to show, so the
+        // captured pixels hold the app underneath rather than this one.
         if (state.image != null || state.error != null) {
           Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             ScreenOcrContent(

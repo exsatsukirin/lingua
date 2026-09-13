@@ -110,7 +110,7 @@ class ScreenOcrViewModel(private val container: AppContainer, private val shared
 
     viewModelScope.launch { container.screenCapture.state.collect(::onCaptureState) }
 
-    sharedImageUri?.let { uri -> importImage(Uri.parse(uri)) }
+    if (sharedImageUri != null) importImage(Uri.parse(sharedImageUri))
   }
 
   fun consentIntent(): Intent = container.screenCapture.consentIntent()
@@ -275,7 +275,11 @@ class ScreenOcrViewModel(private val container: AppContainer, private val shared
       CaptureState.Idle -> Unit
       CaptureState.Capturing ->
         _state.update { it.copy(phase = ScreenOcrPhase.Capturing, error = null) }
-      is CaptureState.Success -> recognize(capture.bitmap)
+      is CaptureState.Success -> {
+        // Each frame is consumed once; a second result screen would otherwise re-run recognition
+        // on the same bitmap.
+        if (_state.value.image !== capture.bitmap) recognize(capture.bitmap)
+      }
       is CaptureState.Failed ->
         _state.update {
           it.copy(phase = ScreenOcrPhase.Idle, error = capture.reason.toMessage())

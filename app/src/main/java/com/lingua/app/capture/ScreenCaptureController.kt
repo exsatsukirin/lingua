@@ -3,7 +3,9 @@ package com.lingua.app.capture
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.media.projection.MediaProjectionConfig
 import android.media.projection.MediaProjectionManager
+import android.os.Build
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,8 +48,18 @@ class ScreenCaptureController(private val context: Context) {
   private val manager: MediaProjectionManager
     get() = context.getSystemService(MediaProjectionManager::class.java)
 
-  /** The intent that shows the system "start capturing?" dialog. */
-  fun consentIntent(): Intent = manager.createScreenCaptureIntent()
+  /**
+   * The intent that shows the system "start capturing?" dialog.
+   *
+   * Android 14 lets the user share a single app instead, which would hide most of what we are
+   * looking for; asking for the default display up front keeps it one tap and whole-screen.
+   */
+  fun consentIntent(): Intent =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+      manager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay())
+    } else {
+      manager.createScreenCaptureIntent()
+    }
 
   /** Starts the capture after the user accepted the system dialog. */
   fun capture(resultCode: Int, data: Intent) {

@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
+import android.hardware.HardwareBuffer
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.Image
@@ -24,7 +25,10 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.lingua.app.R
 import com.lingua.app.appContainer
+import com.lingua.app.ui.screentranslate.ScreenTranslateActivity
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -143,20 +147,29 @@ class ScreenCaptureService : Service() {
       // frame or two would otherwise end up inside the captured image.
       delay(CAPTURE_SETTLE_DELAY_MS)
 
-      reader =
-        ImageReader.newInstance(metrics.widthPixels, metrics.heightPixels, PixelFormat.RGBA_8888, 2)
+      reader = newCaptureReader(metrics)
 
       // The listener has to be in place before the display starts feeding the surface, otherwise
       // the very first (and only) frame can arrive unnoticed.
+      //
+      // The first frames after the consent dialog closes are black on some devices (seen on
+      // Android 16 / ColorOS), so keep listening until a frame with content shows up.
       val frame = CompletableDeferred<Bitmap?>()
+      val blank = AtomicReference<Bitmap?>(null)
+      val framesSeen = AtomicInteger()
       reader.setOnImageAvailableListener({ source ->
         val image = source.acquireLatestImage()
-        if (image == null) {
-          frame.complete(null)
-          return@setOnImageAvailableListener
-        }
+        if (image == null) return@setOnImageAvailableListener
         try {
-          frame.complete(image.toBitmap(metrics.widthPixels, metrics.heightPixels))
+          val bitmap = image.toBitmap(metrics.widthPixels, metrics.heightPixels)
+          framesSeen.incrementAndGet()
+          if (bitmap.isFlat()) {
+            blank.getAndSet(bitmap)?.recycle()
+          } else if (!frame.isCompleted) {
+            frame.complete(bitmap)
+          } else {
+            bitmap.recycle()
+          }
         } catch (error: Throwable) {
           frame.completeExceptionally(error)
         } finally {
@@ -170,7 +183,8 @@ class ScreenCaptureService : Service() {
           metrics.widthPixels,
           metrics.heightPixels,
           metrics.densityDpi,
-          DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+          DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR or
+            DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
           reader.surface,
           null,
           handler,
@@ -179,7 +193,12 @@ class ScreenCaptureService : Service() {
       val bitmap = withTimeoutOrNull(CAPTURE_TIMEOUT_MS) { frame.await() }
       when {
         stopped.get() -> controller.fail(CaptureState.Failure.Denied)
-        bitmap == null -> controller.fail(CaptureState.Failure.Timeout)
+        bitmap == null -> {
+          blank.get()?.recycle()
+          controller.fail(
+            if (framesSeen.get() > 0) CaptureState.Failure.Empty else CaptureState.Failure.Timeout
+          )
+        }
         bitmap.isFlat() -> {
           bitmap.recycle()
           controller.fail(CaptureState.Failure.Empty)
@@ -195,6 +214,24 @@ class ScreenCaptureService : Service() {
       runCatching { projection?.stop() }
       reader?.close()
       stopSelf()
+    }
+  }
+
+  /**
+   * An ImageReader the display composer will actually render into.
+   *
+   * The default usage flags leave some devices (seen on ColorOS / Android 16) handing out black
+   * frames forever, so ask for a GPU-samplable, CPU-readable buffer explicitly.
+   */
+  private fun newCaptureReader(metrics: DisplayMetrics): ImageReader {
+    val width = metrics.widthPixels
+    val height = metrics.heightPixels
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      val usage =
+        HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE or HardwareBuffer.USAGE_CPU_READ_OFTEN
+      ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2, usage)
+    } else {
+      ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
     }
   }
 
@@ -228,7 +265,11 @@ class ScreenCaptureService : Service() {
     val rowPadding = plane.rowStride - pixelStride * width
     val padded =
       Bitmap.createBitmap(width + rowPadding / pixelStride, height, Bitmap.Config.ARGB_8888)
-    padded.copyPixelsFromBuffer(plane.buffer)
+    // Copy from the start of the plane: copyPixelsFromBuffer continues from the buffer's current
+    // position, which is not guaranteed to be zero.
+    val buffer = plane.buffer
+    buffer.rewind()
+    padded.copyPixelsFromBuffer(buffer)
     if (rowPadding == 0) return padded
     val cropped = Bitmap.createBitmap(padded, 0, 0, width, height)
     if (cropped !== padded) padded.recycle()
