@@ -22,8 +22,10 @@ class ScreenTranslateNotifierTest {
       "notifications are disabled for this app",
       NotificationManagerCompat.from(context).areNotificationsEnabled(),
     )
+    // Stopping a foreground service is asynchronous and can take a moment on a slow emulator;
+    // wait for the previous test's service to be really gone before starting a new one.
     ScreenTranslateNotifier.setEnabled(context, enabled = false)
-    Thread.sleep(150)
+    awaitHidden()
   }
 
   @After
@@ -46,7 +48,9 @@ class ScreenTranslateNotifierTest {
 
     ScreenTranslateNotifier.setEnabled(context, false)
 
-    assertFalse("notification survived", awaitShowing())
+    // A foreground service takes its notification down with it; that teardown is asynchronous, and
+    // cancelling an FGS notification directly is ignored while the service is still foreground.
+    assertTrue("notification survived", awaitHidden())
   }
 
   /** The service is started asynchronously, so give it a moment to come up. */
@@ -56,6 +60,15 @@ class ScreenTranslateNotifierTest {
       Thread.sleep(50)
     }
     return com.lingua.app.ui.screentranslate.ScreenTranslateService.running
+  }
+
+  /** Waits for a foreground service to finish stopping and drop its notification. */
+  private fun awaitHidden(): Boolean {
+    repeat(80) {
+      if (!ScreenTranslateNotifier.isShowing(context)) return true
+      Thread.sleep(50)
+    }
+    return ScreenTranslateNotifier.isShowing(context)
   }
 
   /** The notification manager updates its active list asynchronously. */

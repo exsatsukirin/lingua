@@ -147,7 +147,8 @@ class ScreenCaptureService : Service() {
       // frame or two would otherwise end up inside the captured image.
       delay(CAPTURE_SETTLE_DELAY_MS)
 
-      reader = newCaptureReader(metrics)
+      val captureReader = newCaptureReader(metrics)
+      reader = captureReader
 
       // The listener has to be in place before the display starts feeding the surface, otherwise
       // the very first (and only) frame can arrive unnoticed.
@@ -157,18 +158,20 @@ class ScreenCaptureService : Service() {
       val frame = CompletableDeferred<Bitmap?>()
       val blank = AtomicReference<Bitmap?>(null)
       val framesSeen = AtomicInteger()
-      reader.setOnImageAvailableListener({ source ->
+      captureReader.setOnImageAvailableListener({ source ->
         val image = source.acquireLatestImage()
         if (image == null) return@setOnImageAvailableListener
         try {
-          val bitmap = image.toBitmap(metrics.widthPixels, metrics.heightPixels)
-          framesSeen.incrementAndGet()
-          if (bitmap.isFlat()) {
-            blank.getAndSet(bitmap)?.recycle()
-          } else if (!frame.isCompleted) {
-            frame.complete(bitmap)
-          } else {
-            bitmap.recycle()
+          // Once a frame is in hand the buffers are about to be torn down; touching one more time
+          // would be a use-after-free (and a native crash inside copyPixelsFromBuffer).
+          if (!frame.isCompleted) {
+            val bitmap = image.toBitmap(metrics.widthPixels, metrics.heightPixels)
+            framesSeen.incrementAndGet()
+            if (bitmap.isFlat()) {
+              blank.getAndSet(bitmap)?.recycle()
+            } else {
+              frame.complete(bitmap)
+            }
           }
         } catch (error: Throwable) {
           frame.completeExceptionally(error)
@@ -183,9 +186,8 @@ class ScreenCaptureService : Service() {
           metrics.widthPixels,
           metrics.heightPixels,
           metrics.densityDpi,
-          DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR or
-            DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-          reader.surface,
+          DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+          captureReader.surface,
           null,
           handler,
         )
@@ -203,32 +205,37 @@ class ScreenCaptureService : Service() {
           bitmap.recycle()
           controller.fail(CaptureState.Failure.Empty)
         }
-        else -> controller.publish(bitmap)
+        else -> {
+          controller.publish(bitmap)
+        }
       }
     } catch (error: Throwable) {
       controller.fail(if (stopped.get()) CaptureState.Failure.Denied else CaptureState.Failure.Empty)
     } finally {
-      reader?.setOnImageAvailableListener(null, null)
-      virtualDisplay?.release()
-      runCatching { projection?.unregisterCallback(callback) }
-      runCatching { projection?.stop() }
-      reader?.close()
-      stopSelf()
+      // Tear down on the capture thread: a frame callback that is already queued there must not be
+      // reading a buffer we are freeing underneath it.
+      handler.post {
+        reader?.setOnImageAvailableListener(null, null)
+        virtualDisplay?.release()
+        runCatching { projection?.unregisterCallback(callback) }
+        runCatching { projection?.stop() }
+        reader?.close()
+        stopSelf()
+      }
     }
   }
 
   /**
    * An ImageReader the display composer will actually render into.
    *
-   * The default usage flags leave some devices (seen on ColorOS / Android 16) handing out black
-   * frames forever, so ask for a GPU-samplable, CPU-readable buffer explicitly.
+   * The default usage flags leave some devices handing out black frames, so ask for a
+   * GPU-samplable, CPU-readable buffer explicitly.
    */
   private fun newCaptureReader(metrics: DisplayMetrics): ImageReader {
     val width = metrics.widthPixels
     val height = metrics.heightPixels
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      val usage =
-        HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE or HardwareBuffer.USAGE_CPU_READ_OFTEN
+      val usage = HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE or HardwareBuffer.USAGE_CPU_READ_OFTEN
       ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2, usage)
     } else {
       ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)

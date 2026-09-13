@@ -63,8 +63,7 @@
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
             android:excludeFromRecents="true"
             android:exported="false"
-            android:noHistory="true"
-            android:taskAffinity=""
+            android:taskAffinity="com.lingua.app.capture"
             android:theme="@style/Theme.Lingua.ScreenTranslate" />
 
         <!-- The notification's "turn off" action. -->
