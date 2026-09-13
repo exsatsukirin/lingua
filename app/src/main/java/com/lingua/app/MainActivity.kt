@@ -36,7 +36,8 @@ class MainActivity : ComponentActivity() {
     // the app is also what turns the session-scoped screen-translate shortcut off again.
     if (savedInstanceState == null) {
       sharedImage.value = imageFromIntent(intent)
-      ScreenTranslateNotifier.cancel(this)
+      // The shortcut is session-scoped: opening the app takes the ball and notification down.
+      ScreenTranslateNotifier.setEnabled(applicationContext, enabled = false)
     }
 
     setContent {

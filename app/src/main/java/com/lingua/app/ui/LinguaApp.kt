@@ -1,8 +1,12 @@
 package com.lingua.app.ui
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -186,22 +190,41 @@ private fun HomeShell(
   val settingsViewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(container))
 
   val context = LocalContext.current
-  var notificationsAllowed by remember {
-    mutableStateOf(
-      Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
-          PackageManager.PERMISSION_GRANTED
-    )
-  }
+  var notificationsAllowed by remember { mutableStateOf(canPostNotifications(context)) }
+  var overlayAllowed by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
+  /** Set when the user asked for the shortcut, so each missing grant can be requested in turn. */
+  var enableRequested by remember { mutableStateOf(false) }
+
   val notificationPermission =
     rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
       notificationsAllowed = granted
-      // The user asked for the shortcut; honour the answer without making them flip it twice.
-      if (granted) translateViewModel.setScreenTranslateEnabled(true)
+      if (!granted) enableRequested = false
+    }
+  val overlayPermission =
+    rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+      overlayAllowed = Settings.canDrawOverlays(context)
     }
 
-  // Dismissing the notification from the shade must not leave the switch claiming it is on.
+  // Walks the two grants the shortcut needs — notifications for the resident entry, overlay for the
+  // ball — and switches it on once both are in place.
+  LaunchedEffect(enableRequested, notificationsAllowed, overlayAllowed) {
+    if (!enableRequested) return@LaunchedEffect
+    when {
+      !notificationsAllowed ->
+        notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+      !overlayAllowed -> overlayPermission.launch(overlayGrantIntent(context))
+      else -> {
+        enableRequested = false
+        translateViewModel.setScreenTranslateEnabled(true)
+      }
+    }
+  }
+
+  // Dismissing the notification from the shade must not leave the switch claiming it is on, and the
+  // overlay grant may have been given (or withdrawn) in system settings while we were away.
   LifecycleResumeEffect(Unit) {
+    overlayAllowed = Settings.canDrawOverlays(context)
+    notificationsAllowed = canPostNotifications(context)
     translateViewModel.syncScreenTranslateState()
     onPauseOrDispose {}
   }
@@ -261,13 +284,15 @@ private fun HomeShell(
                 onOpenSettings = { selectedTabName = HomeTab.Settings.name },
                 onOpenScreenOcr = onOpenScreenOcr,
                 onScreenTranslateToggle = { enabled ->
-                  if (enabled && !notificationsAllowed) {
-                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                  if (enabled) {
+                    enableRequested = true
                   } else {
-                    translateViewModel.setScreenTranslateEnabled(enabled)
+                    enableRequested = false
+                    translateViewModel.setScreenTranslateEnabled(false)
                   }
                 },
                 notificationsBlocked = !notificationsAllowed,
+                overlayBlocked = !overlayAllowed,
               )
             }
             HomeTab.History -> {
@@ -305,3 +330,12 @@ private fun HomeShell(
     }
   }
 }
+
+private fun canPostNotifications(context: Context): Boolean =
+  Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+      PackageManager.PERMISSION_GRANTED
+
+/** The system page where "display over other apps" is granted; there is no runtime dialog. */
+private fun overlayGrantIntent(context: Context): Intent =
+  Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))

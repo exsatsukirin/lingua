@@ -81,6 +81,12 @@ class ScreenTranslateActivity : ComponentActivity() {
     viewModel.onEnter()
     consent.launch(viewModel.consentIntent())
   }
+
+  override fun onDestroy() {
+    // The ball was taken down so it would not appear in the capture; put it back for next time.
+    ScreenTranslateService.restoreBall(this)
+    super.onDestroy()
+  }
 }
 
 @Composable

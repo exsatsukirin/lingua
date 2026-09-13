@@ -94,6 +94,7 @@ fun TranslateScreen(
   onOpenScreenOcr: () -> Unit,
   onScreenTranslateToggle: (Boolean) -> Unit,
   notificationsBlocked: Boolean,
+  overlayBlocked: Boolean,
 ) {
   val context = LocalContext.current
   val clipboard = LocalClipboard.current
@@ -155,6 +156,7 @@ fun TranslateScreen(
       ScreenTranslateCard(
         enabled = state.screenTranslateEnabled,
         notificationsBlocked = notificationsBlocked,
+        overlayBlocked = overlayBlocked,
         onToggle = onScreenTranslateToggle,
       )
 
@@ -475,6 +477,7 @@ private fun ResultCard(
 private fun ScreenTranslateCard(
   enabled: Boolean,
   notificationsBlocked: Boolean,
+  overlayBlocked: Boolean,
   onToggle: (Boolean) -> Unit,
 ) {
   Card(
@@ -505,6 +508,7 @@ private fun ScreenTranslateCard(
             when {
               notificationsBlocked ->
                 stringResource(R.string.translate_screen_translate_needs_permission)
+              overlayBlocked -> stringResource(R.string.translate_screen_translate_needs_overlay)
               enabled -> stringResource(R.string.translate_screen_translate_on)
               else -> stringResource(R.string.translate_screen_translate_off)
             },

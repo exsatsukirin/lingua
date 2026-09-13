@@ -1,5 +1,6 @@
 package com.lingua.app.data.notify
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -7,16 +8,18 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.lingua.app.R
 import com.lingua.app.ui.screentranslate.ScreenTranslateActivity
 import com.lingua.app.ui.screentranslate.ScreenTranslateDismissReceiver
+import com.lingua.app.ui.screentranslate.ScreenTranslateService
 
 /**
- * The resident notification that makes "translate whatever is on screen" a one-tap action.
+ * The resident screen-translate shortcut.
  *
- * Deliberately not a foreground service: the notification only has to outlive the app so a tap can
- * start screen recognition, and a posted notification does that on its own. Capturing a frame still
- * goes through the `mediaProjection` foreground service, which runs only while it captures.
+ * It is a notification plus a draggable ball, both owned by [ScreenTranslateService]: the
+ * notification is how the shortcut survives without an overlay grant, and the ball is the faster
+ * way to reach it. Nothing is captured until the user actually taps one of them.
  */
 object ScreenTranslateNotifier {
 
@@ -24,22 +27,19 @@ object ScreenTranslateNotifier {
 
   const val ACTION_DISMISS = "com.lingua.app.action.DISMISS_SCREEN_TRANSLATE"
 
-  private const val NOTIFICATION_ID = 0x12
+  const val NOTIFICATION_ID = 0x12
 
   fun setEnabled(context: Context, enabled: Boolean) {
+    val intent = Intent(context, ScreenTranslateService::class.java)
     if (!enabled) {
-      cancel(context)
+      context.stopService(intent)
+      NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
       return
     }
     if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
-    ensureChannel(context)
     runCatching {
-      NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, build(context))
+      ContextCompat.startForegroundService(context, intent.setAction(ScreenTranslateService.ACTION_START))
     }
-  }
-
-  fun cancel(context: Context) {
-    NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
   }
 
   /** True while the resident notification is on screen; used to keep the switch honest. */
@@ -48,7 +48,8 @@ object ScreenTranslateNotifier {
       .activeNotifications
       .any { it.id == NOTIFICATION_ID }
 
-  private fun build(context: Context): android.app.Notification {
+  internal fun notification(context: Context): Notification {
+    ensureChannel(context)
     val open =
       PendingIntent.getActivity(
         context,

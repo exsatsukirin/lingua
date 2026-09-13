@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="window_background">#101413</color>
+    <color name="screen_translate_ball">#F282D5CC</color>
+    <color name="screen_translate_ball_ring">#6600201D</color>
+    <color name="screen_translate_ball_icon">#FF00201D</color>
 </resources>

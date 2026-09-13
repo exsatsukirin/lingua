@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="window_background">#FFFBFF</color>
+    <!-- Floating screen-translate shortcut (brand teal). -->
+    <color name="screen_translate_ball">#F2006A63</color>
+    <color name="screen_translate_ball_ring">#66FFFFFF</color>
+    <color name="screen_translate_ball_icon">#FFFFFFFF</color>
 </resources>

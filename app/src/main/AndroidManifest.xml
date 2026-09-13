@@ -10,6 +10,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <!-- The screen-translate shortcut lives in a notification; Android 13+ gates posting it. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- The floating ball is an application overlay; the user grants this in system settings. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Keeping the ball alive needs a foreground service with no better-fitting type. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
         android:name=".LinguaApplication"
@@ -67,6 +71,20 @@
         <receiver
             android:name=".ui.screentranslate.ScreenTranslateDismissReceiver"
             android:exported="false" />
+
+        <!--
+          Holds the resident notification and the floating ball. Foreground because the ball is an
+          overlay owned by this process: without it the ball would vanish as soon as the user left
+          the app, which is exactly when the shortcut is needed.
+        -->
+        <service
+            android:name=".ui.screentranslate.ScreenTranslateService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="floating shortcut that starts an on-demand screen translation" />
+        </service>
 
         <!--
           "Translate this" entry in any app's text-selection toolbar.

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Floating screen-translate shortcut. -->
+    <dimen name="screen_translate_ball">52dp</dimen>
+    <dimen name="screen_translate_ball_icon">24dp</dimen>
+    <dimen name="screen_translate_ball_margin">10dp</dimen>
+</resources>

@@ -249,9 +249,10 @@
     <string name="screen_translate_notification_text">Screen translate is on. Text is read on device; only what you pick is sent.</string>
     <string name="screen_translate_action_dismiss">Turn off</string>
     <string name="translate_screen_translate_title">Screen translate</string>
-    <string name="translate_screen_translate_off">Keeps a notification so you can translate whatever is on screen from any app.</string>
-    <string name="translate_screen_translate_on">The notification is active — tap it to translate the current screen.</string>
+    <string name="translate_screen_translate_off">Adds a notification and a floating ball so you can translate whatever is on screen from any app.</string>
+    <string name="translate_screen_translate_on">Tap the ball or the notification to translate the current screen. Drag the ball to move it.</string>
     <string name="translate_screen_translate_needs_permission">Allow notifications for Lingua to keep this shortcut.</string>
+    <string name="translate_screen_translate_needs_overlay">Allow “display over other apps” so the floating ball can appear.</string>
     <string name="screen_ocr_capture_hint">To read another app, turn on Screen translate above and tap its notification while that app is open.</string>
 
     <!-- On-device OCR model row in settings -->
