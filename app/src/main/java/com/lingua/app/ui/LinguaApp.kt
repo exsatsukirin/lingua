@@ -1,5 +1,8 @@
 package com.lingua.app.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,12 +27,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.entryProvider
@@ -156,6 +163,9 @@ fun LinguaApp(
             onRetry = screenOcrViewModel::retry,
             onToggleFavorite = screenOcrViewModel::toggleFavorite,
             onDismissError = screenOcrViewModel::dismissError,
+            // Capturing from inside the app could only ever grab Lingua's own window; the resident
+            // notification is the way to read another app.
+            allowCapture = false,
           )
         }
       },
@@ -174,6 +184,27 @@ private fun HomeShell(
   val translateViewModel: TranslateViewModel = viewModel(factory = TranslateViewModel.factory(container))
   val historyViewModel: HistoryViewModel = viewModel(factory = HistoryViewModel.factory(container))
   val settingsViewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(container))
+
+  val context = LocalContext.current
+  var notificationsAllowed by remember {
+    mutableStateOf(
+      Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+          PackageManager.PERMISSION_GRANTED
+    )
+  }
+  val notificationPermission =
+    rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+      notificationsAllowed = granted
+      // The user asked for the shortcut; honour the answer without making them flip it twice.
+      if (granted) translateViewModel.setScreenTranslateEnabled(true)
+    }
+
+  // Dismissing the notification from the shade must not leave the switch claiming it is on.
+  LifecycleResumeEffect(Unit) {
+    translateViewModel.syncScreenTranslateState()
+    onPauseOrDispose {}
+  }
 
   BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
     val wide = maxWidth >= 600.dp
@@ -229,6 +260,14 @@ private fun HomeShell(
                 onExample = translateViewModel::setExample,
                 onOpenSettings = { selectedTabName = HomeTab.Settings.name },
                 onOpenScreenOcr = onOpenScreenOcr,
+                onScreenTranslateToggle = { enabled ->
+                  if (enabled && !notificationsAllowed) {
+                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                  } else {
+                    translateViewModel.setScreenTranslateEnabled(enabled)
+                  }
+                },
+                notificationsBlocked = !notificationsAllowed,
               )
             }
             HomeTab.History -> {

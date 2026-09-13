@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.lingua.app.AppContainer
+import com.lingua.app.data.notify.ScreenTranslateNotifier
 import com.lingua.app.data.remote.LlmError
 import com.lingua.app.data.remote.TranslationOutcome
 import com.lingua.app.domain.Language
@@ -42,6 +43,11 @@ data class TranslateUiState(
   val hasProfile: Boolean = false,
   val activeProfileName: String? = null,
   val autoSaveHistory: Boolean = true,
+  /**
+   * Whether the resident notification is on. Session-scoped on purpose: it is never persisted, and
+   * opening the app turns it off again.
+   */
+  val screenTranslateEnabled: Boolean = false,
 ) {
   val isTooLong: Boolean get() = sourceText.length > MAX_SOURCE_LENGTH
 
@@ -174,6 +180,23 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
   }
 
   fun retry() = translate()
+
+  /** Turns the resident notification on or off. */
+  fun setScreenTranslateEnabled(enabled: Boolean) {
+    _state.update { it.copy(screenTranslateEnabled = enabled) }
+    ScreenTranslateNotifier.setEnabled(container.appContext, enabled)
+  }
+
+  /**
+   * Reconciles the switch with the notification that is actually posted, so dismissing it from the
+   * shade does not leave a switch that claims to be on.
+   */
+  fun syncScreenTranslateState() {
+    val showing = ScreenTranslateNotifier.isShowing(container.appContext)
+    if (showing != _state.value.screenTranslateEnabled) {
+      _state.update { it.copy(screenTranslateEnabled = showing) }
+    }
+  }
 
   /** Explicit save for users who turned automatic saving off. */
   fun saveToHistory() {

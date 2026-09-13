@@ -115,6 +115,12 @@ fun ScreenOcrScreen(
   onRetry: () -> Unit,
   onToggleFavorite: () -> Unit,
   onDismissError: () -> Unit,
+  /**
+   * False when this screen sits inside the app itself: capturing from there could only ever grab
+   * Lingua's own window, so the toggle in the notification is the way to grab another app.
+   */
+  allowCapture: Boolean = true,
+  allowImagePick: Boolean = true,
 ) {
   val context = LocalContext.current
   val clipboard = LocalClipboard.current
@@ -138,7 +144,7 @@ fun ScreenOcrScreen(
           }
         },
         actions = {
-          if (state.image != null) {
+          if (state.image != null && allowCapture) {
             IconButton(onClick = onRetake) {
               Icon(
                 Icons.Outlined.Refresh,
@@ -146,11 +152,13 @@ fun ScreenOcrScreen(
               )
             }
           }
-          IconButton(onClick = onPickImage) {
-            Icon(
-              Icons.Outlined.Image,
-              contentDescription = stringResource(R.string.screen_ocr_pick_image),
-            )
+          if (allowImagePick) {
+            IconButton(onClick = onPickImage) {
+              Icon(
+                Icons.Outlined.Image,
+                contentDescription = stringResource(R.string.screen_ocr_pick_image),
+              )
+            }
           }
         },
       )
@@ -227,7 +235,12 @@ fun ScreenOcrScreen(
             modifier = Modifier.fillMaxSize(),
           )
         state.phase == ScreenOcrPhase.Idle ->
-          IdleBody(onCaptureRequest = onCaptureRequest, onPickImage = onPickImage)
+          IdleBody(
+            allowCapture = allowCapture,
+            allowImagePick = allowImagePick,
+            onCaptureRequest = onCaptureRequest,
+            onPickImage = onPickImage,
+          )
       }
     }
   }
@@ -413,7 +426,12 @@ private fun ProgressBody(label: String) {
 }
 
 @Composable
-private fun IdleBody(onCaptureRequest: () -> Unit, onPickImage: () -> Unit) {
+private fun IdleBody(
+  allowCapture: Boolean,
+  allowImagePick: Boolean,
+  onCaptureRequest: () -> Unit,
+  onPickImage: () -> Unit,
+) {
   Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
     Column(
       modifier = Modifier.fillMaxWidth().padding(24.dp),
@@ -425,11 +443,21 @@ private fun IdleBody(onCaptureRequest: () -> Unit, onPickImage: () -> Unit) {
         title = stringResource(R.string.screen_ocr_idle_title),
         body = stringResource(R.string.screen_ocr_idle_body),
       )
-      Button(onClick = onCaptureRequest, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.screen_ocr_capture))
+      if (allowCapture) {
+        Button(onClick = onCaptureRequest, modifier = Modifier.fillMaxWidth()) {
+          Text(stringResource(R.string.screen_ocr_capture))
+        }
+      } else {
+        Text(
+          text = stringResource(R.string.screen_ocr_capture_hint),
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
       }
-      OutlinedButton(onClick = onPickImage, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.screen_ocr_pick_image))
+      if (allowImagePick) {
+        OutlinedButton(onClick = onPickImage, modifier = Modifier.fillMaxWidth()) {
+          Text(stringResource(R.string.screen_ocr_pick_image))
+        }
       }
     }
   }
@@ -557,6 +585,8 @@ private fun OcrImageCanvas(
 
     // The gesture handlers outlive a single composition, so they read the latest transform.
     val geometry by rememberUpdatedState(Geometry(originX, originY, drawScale))
+    // Thin text lines are hard to hit exactly; grow the target by a touch-slop worth of pixels.
+    val tapMarginPx = with(density) { TAP_MARGIN.toPx() }
     val blocks by rememberUpdatedState(paragraphs)
     val toggle by rememberUpdatedState(onToggleParagraph)
 
@@ -571,22 +601,8 @@ private fun OcrImageCanvas(
               if (current.scale <= 0f) return@detectTapGestures
               val imageX = (position.x - current.originX) / current.scale
               val imageY = (position.y - current.originY) / current.scale
-              val hit =
-                blocks
-                  .indices
-                  .filter { index ->
-                    val block = blocks[index]
-                    imageX >= block.left &&
-                      imageX <= block.right &&
-                      imageY >= block.top &&
-                      imageY <= block.bottom
-                  }
-                  // Overlapping boxes: prefer the tightest one.
-                  .minByOrNull { index ->
-                    val block = blocks[index]
-                    (block.right - block.left) * (block.bottom - block.top)
-                  }
-              hit?.let(toggle)
+              val hit = findParagraphAt(blocks, imageX, imageY, margin = tapMarginPx / current.scale)
+              if (hit != null) toggle(hit)
             }
           }
           .pointerInput(bitmap) {
@@ -632,3 +648,5 @@ private fun OcrImageCanvas(
 }
 
 private data class Geometry(val originX: Float, val originY: Float, val scale: Float)
+
+private val TAP_MARGIN = 8.dp

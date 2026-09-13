@@ -34,6 +34,7 @@ class ScreenOcrScreenTest {
     state: ScreenOcrUiState,
     onToggleParagraph: (Int) -> Unit = {},
     onTranslate: () -> Unit = {},
+    allowCapture: Boolean = true,
   ) {
     compose.setContent {
       MaterialTheme {
@@ -53,6 +54,7 @@ class ScreenOcrScreenTest {
           onRetry = {},
           onToggleFavorite = {},
           onDismissError = {},
+          allowCapture = allowCapture,
         )
       }
     }
@@ -64,6 +66,16 @@ class ScreenOcrScreenTest {
 
     compose.onNodeWithText(string(com.lingua.app.R.string.screen_ocr_capture)).assertExists()
     compose.onNodeWithText(string(com.lingua.app.R.string.screen_ocr_idle_title)).assertExists()
+  }
+
+  @Test
+  fun insideTheAppCaptureIsReplacedByAPointerToTheNotification() {
+    // Capturing from the app's own window could only ever grab Lingua itself.
+    show(ScreenOcrUiState(targetLanguage = target), allowCapture = false)
+
+    compose.onNodeWithText(string(com.lingua.app.R.string.screen_ocr_capture)).assertDoesNotExist()
+    compose.onNodeWithText(string(com.lingua.app.R.string.screen_ocr_capture_hint)).assertExists()
+    compose.onNodeWithText(string(com.lingua.app.R.string.screen_ocr_pick_image)).assertExists()
   }
 
   @Test

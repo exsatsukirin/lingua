@@ -243,6 +243,17 @@
     <string name="screen_capture_notification_title">正在截取屏幕</string>
     <string name="screen_capture_notification_text">不会录制任何内容，这一帧仅用于文字识别。</string>
 
+    <!-- Resident screen-translate shortcut -->
+    <string name="screen_translate_channel">屏幕翻译快捷方式</string>
+    <string name="screen_translate_notification_title">点按翻译当前屏幕</string>
+    <string name="screen_translate_notification_text">屏幕翻译已开启。文字在本地识别，只有你选中的部分会发送出去。</string>
+    <string name="screen_translate_action_dismiss">关闭</string>
+    <string name="translate_screen_translate_title">屏幕翻译</string>
+    <string name="translate_screen_translate_off">开启后常驻通知栏，在任意应用里点按通知即可翻译当前屏幕。</string>
+    <string name="translate_screen_translate_on">已常驻通知栏，点按通知即可翻译当前屏幕。</string>
+    <string name="translate_screen_translate_needs_permission">需要通知权限：请在系统设置中允许「灵译」发送通知。</string>
+    <string name="screen_ocr_capture_hint">要翻译其他应用的界面，请打开上方的「屏幕翻译」，切到那个应用后点按通知。</string>
+
     <!-- On-device OCR model row in settings -->
     <string name="settings_section_ocr">屏幕取词</string>
     <string name="settings_ocr_model">本机文字识别模型</string>

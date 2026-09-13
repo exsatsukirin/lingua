@@ -8,6 +8,8 @@
     -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <!-- The screen-translate shortcut lives in a notification; Android 13+ gates posting it. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".LinguaApplication"
@@ -44,6 +46,27 @@
             android:name=".capture.ScreenCaptureService"
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
+
+        <!--
+          Started by the resident notification's tap. The window is transparent and draws nothing
+          until the frame is captured, so what gets captured is the app underneath.
+
+          An empty taskAffinity keeps it out of the app's own task: launching the main task would
+          bring Lingua's UI back to the front, and that is what would end up in the capture.
+        -->
+        <activity
+            android:name=".ui.screentranslate.ScreenTranslateActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Lingua.ScreenTranslate" />
+
+        <!-- The notification's "turn off" action. -->
+        <receiver
+            android:name=".ui.screentranslate.ScreenTranslateDismissReceiver"
+            android:exported="false" />
 
         <!--
           "Translate this" entry in any app's text-selection toolbar.

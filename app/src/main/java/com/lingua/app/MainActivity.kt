@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lingua.app.data.notify.ScreenTranslateNotifier
 import com.lingua.app.data.settings.ThemeMode
 import com.lingua.app.theme.LinguaTheme
 import com.lingua.app.ui.LinguaApp
@@ -31,8 +32,12 @@ class MainActivity : ComponentActivity() {
     enableEdgeToEdge()
 
     val container = (application as LinguaApplication).container
-    // Only on a cold start: a configuration change must not re-open the shared image.
-    if (savedInstanceState == null) sharedImage.value = imageFromIntent(intent)
+    // Only on a cold start: a configuration change must not re-open the shared image, and opening
+    // the app is also what turns the session-scoped screen-translate shortcut off again.
+    if (savedInstanceState == null) {
+      sharedImage.value = imageFromIntent(intent)
+      ScreenTranslateNotifier.cancel(this)
+    }
 
     setContent {
       val settings by container.settingsRepository.settings.collectAsStateWithLifecycle(initialValue = null)

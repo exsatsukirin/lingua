@@ -48,6 +48,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -91,6 +92,8 @@ fun TranslateScreen(
   onExample: (String) -> Unit,
   onOpenSettings: () -> Unit,
   onOpenScreenOcr: () -> Unit,
+  onScreenTranslateToggle: (Boolean) -> Unit,
+  notificationsBlocked: Boolean,
 ) {
   val context = LocalContext.current
   val clipboard = LocalClipboard.current
@@ -148,6 +151,12 @@ fun TranslateScreen(
       if (!state.hasProfile) {
         NoProfileCard(onOpenSettings = onOpenSettings)
       }
+
+      ScreenTranslateCard(
+        enabled = state.screenTranslateEnabled,
+        notificationsBlocked = notificationsBlocked,
+        onToggle = onScreenTranslateToggle,
+      )
 
       SourceCard(
         state = state,
@@ -452,6 +461,58 @@ private fun ResultCard(
           }
         }
       }
+    }
+  }
+}
+
+/**
+ * The home-page switch for the resident notification.
+ *
+ * Off on every launch by design: it is a "use it now" control rather than a setting, and a stale
+ * notification the user forgot about is worse than one extra tap.
+ */
+@Composable
+private fun ScreenTranslateCard(
+  enabled: Boolean,
+  notificationsBlocked: Boolean,
+  onToggle: (Boolean) -> Unit,
+) {
+  Card(
+    shape = MaterialTheme.shapes.extraLarge,
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    modifier = Modifier.fillMaxWidth(),
+  ) {
+    Row(
+      modifier = Modifier.padding(16.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+      Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.small) {
+        Icon(
+          Icons.Outlined.Screenshot,
+          contentDescription = null,
+          tint = MaterialTheme.colorScheme.onPrimaryContainer,
+          modifier = Modifier.padding(8.dp).size(20.dp),
+        )
+      }
+      Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+          text = stringResource(R.string.translate_screen_translate_title),
+          style = MaterialTheme.typography.titleSmall,
+        )
+        Text(
+          text =
+            when {
+              notificationsBlocked ->
+                stringResource(R.string.translate_screen_translate_needs_permission)
+              enabled -> stringResource(R.string.translate_screen_translate_on)
+              else -> stringResource(R.string.translate_screen_translate_off)
+            },
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
+      Switch(checked = enabled, onCheckedChange = onToggle)
     }
   }
 }
