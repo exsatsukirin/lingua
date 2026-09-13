@@ -32,22 +32,24 @@ internal object OcrGeometry {
   fun perimeter(quad: Quad): Float =
     (0 until 4).sumOf { hypot((quad.x((it + 1) % 4) - quad.x(it)).toDouble(), (quad.y((it + 1) % 4) - quad.y(it)).toDouble()) }.toFloat()
 
-  /** Re-orders corners to top-left, top-right, bottom-right, bottom-left. */
+  /**
+   * Re-orders corners to top-left, top-right, bottom-right, bottom-left.
+   *
+   * Sorting by x and then splitting each vertical pair by y is the same rule PaddleOCR's
+   * `get_mini_boxes` uses. Picking "the highest corner, then its right-hand neighbour" instead
+   * breaks on boxes taller than they are wide: a tall box's top-right corner can sit a fraction of
+   * a pixel higher than its top-left corner, which silently transposes the box and makes the
+   * recognizer un-warp the crop rotated by 90 degrees.
+   */
   fun orderQuad(quad: Quad): Quad {
-    var start = 0
-    for (i in 1 until 4) {
-      if (quad.y(i) < quad.y(start) || (quad.y(i) == quad.y(start) && quad.x(i) < quad.x(start))) {
-        start = i
-      }
-    }
-    // The stored order is cyclic, so the two neighbours of `start` are its +1/-1 steps and the
-    // corner two steps away is the diagonal. The neighbour further right is the top-right corner.
-    val forward = (start + 1) % 4
-    val backward = (start + 3) % 4
-    val next = if (quad.x(backward) > quad.x(forward)) backward else forward
-    val diagonal = (start + 2) % 4
-    val last = (0 until 4).first { it != start && it != next && it != diagonal }
-    val order = intArrayOf(start, next, diagonal, last)
+    val byX = (0 until 4).sortedBy { quad.x(it) }
+    val left = byX[0] to byX[1]
+    val right = byX[2] to byX[3]
+    fun upper(pair: Pair<Int, Int>) =
+      if (quad.y(pair.first) <= quad.y(pair.second)) pair.first else pair.second
+    fun lower(pair: Pair<Int, Int>) = if (upper(pair) == pair.first) pair.second else pair.first
+
+    val order = intArrayOf(upper(left), upper(right), lower(right), lower(left))
     return Quad(FloatArray(4) { quad.x(order[it]) }, FloatArray(4) { quad.y(order[it]) })
   }
 

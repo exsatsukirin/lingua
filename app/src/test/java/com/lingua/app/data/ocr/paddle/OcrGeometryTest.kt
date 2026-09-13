@@ -63,6 +63,40 @@ class OcrGeometryTest {
   }
 
   @Test
+  fun `orderQuad keeps a tall box tall`() {
+    // The order minAreaRect produced for a vertical text column, where the top-right corner sits
+    // 0.12px above the top-left one. The old "highest corner first" rule transposed this box, which
+    // made the recognizer un-warp the crop rotated by 90 degrees.
+    val tall = quad(88.95f to 50.0f, 90.19f to 582.79f, 38.44f to 582.91f, 37.20f to 50.12f)
+
+    val ordered = OcrGeometry.orderQuad(tall)
+
+    assertEquals(37.20f, ordered.x(0), 0.01f)
+    assertEquals(50.12f, ordered.y(0), 0.01f)
+    assertEquals(88.95f, ordered.x(1), 0.01f)
+    assertEquals(50.0f, ordered.y(1), 0.01f)
+    assertEquals(90.19f, ordered.x(2), 0.01f)
+    assertEquals(582.79f, ordered.y(2), 0.01f)
+    assertEquals(38.44f, ordered.x(3), 0.01f)
+    assertEquals(582.91f, ordered.y(3), 0.01f)
+    assertTrue("width ${ordered.edgeWidth} should be the short side", ordered.edgeWidth < 60f)
+    assertTrue("height ${ordered.edgeHeight} should be the long side", ordered.edgeHeight > 500f)
+  }
+
+  @Test
+  fun `orderQuad keeps a wide box wide`() {
+    val wide = quad(10f to 80f, 200f to 80f, 200f to 100f, 10f to 100f)
+
+    val ordered = OcrGeometry.orderQuad(wide)
+
+    assertEquals(10f, ordered.x(0), 0.01f)
+    assertEquals(80f, ordered.y(0), 0.01f)
+    assertEquals(200f, ordered.x(1), 0.01f)
+    assertEquals(190f, ordered.edgeWidth, 0.01f)
+    assertEquals(20f, ordered.edgeHeight, 0.01f)
+  }
+
+  @Test
   fun `unclip grows a box outwards on every side`() {
     val box = quad(0f to 0f, 100f to 0f, 100f to 20f, 0f to 20f)
 
