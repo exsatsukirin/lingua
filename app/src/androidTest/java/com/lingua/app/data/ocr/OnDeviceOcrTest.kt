@@ -43,6 +43,20 @@ class OnDeviceOcrTest {
   }
 
   @Test
+  fun readsVerticalDialogueAndAHorizontalCaption() {
+    val repository = OcrRepository(PaddleModelStore(context))
+    val bitmap = fixture("vertical_manga.png")
+
+    val result = runBlocking { repository.recognize(bitmap) }
+    println("manga on device: turned ${result.rotationDegrees}, ${result.lines.map { it.text }}")
+
+    assertTrue("should have turned the pixels", result.rotationDegrees != 0)
+    val texts = result.lines.map { it.text }
+    assertTrue("missing a vertical column: $texts", texts.contains("吾輩は猫である。"))
+    assertTrue("the horizontal caption was lost: $texts", texts.any { it.contains("夏目漱石") })
+  }
+
+  @Test
   fun findsNothingOnABlankImage() {
     val repository = OcrRepository(PaddleModelStore(context))
     val blank =

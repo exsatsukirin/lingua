@@ -2,6 +2,7 @@ package com.lingua.app.data.ocr
 
 import java.io.File
 import javax.imageio.ImageIO
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -46,6 +47,7 @@ class PaddleOcrEngineTest {
     println("recognized ${lines.size} lines: ${lines.joinToString(" | ") { it.text }}")
 
     assertTrue("expected at least 9 lines, got ${lines.size}", lines.size >= 9)
+    assertEquals("an upright screenshot must not be re-run turned", 0, result.rotationDegrees)
     val expected =
       listOf(
         "电池与性能",
@@ -85,6 +87,62 @@ class PaddleOcrEngineTest {
 
     val title = paragraphs.first { it.text.contains("电池与性能") }
     assertTrue("title absorbed the next row: ${title.text}", !title.text.contains("Battery usage"))
+  }
+
+  @Test
+  fun `recovers a screenshot that is lying on its side`() {
+    val sideways = loadImage().rotated(QuarterTurn.Clockwise90)
+
+    val result =
+      PaddleOcrEngine(
+        detModelPath = File(assetsDir, "PP-OCRv6_small_det.onnx").absolutePath,
+        recModelPath = File(assetsDir, "PP-OCRv6_small_rec.onnx").absolutePath,
+        dictLines = File(assetsDir, "ppocrv6_dict.txt").readLines(),
+      ).use { it.recognize(sideways) }
+
+    println("sideways: rotated by ${result.rotationDegrees}, lines=${result.lines.map { it.text }}")
+
+    assertTrue("should have turned the pixels, got ${result.rotationDegrees}", result.rotationDegrees != 0)
+    val compact = result.lines.map { it.text.replace(" ", "") }
+    for (needle in listOf("电池与性能", "Batteryusagesincelastfullcharge", "Batterylevel:68%")) {
+      assertTrue("missing '$needle' in $compact", compact.any { it.contains(needle) })
+    }
+    // Boxes come back in the caller's frame, so they must fit the image that was handed in.
+    for (line in result.lines) {
+      assertTrue(
+        "box ${line.quad} outside ${sideways.width}x${sideways.height}",
+        line.quad.minX >= -1f &&
+          line.quad.minY >= -1f &&
+          line.quad.maxX <= sideways.width + 1f &&
+          line.quad.maxY <= sideways.height + 1f,
+      )
+    }
+  }
+
+  @Test
+  fun `reads vertical dialogue and a horizontal caption in the same image`() {
+    // Manga-style panel: four columns read top-to-bottom, plus one ordinary horizontal caption.
+    val buffered = ImageIO.read(File("src/test/resources/ocr/vertical_manga.png"))
+    val pixels = IntArray(buffered.width * buffered.height)
+    buffered.getRGB(0, 0, buffered.width, buffered.height, pixels, 0, buffered.width)
+
+    val result =
+      PaddleOcrEngine(
+        detModelPath = File(assetsDir, "PP-OCRv6_small_det.onnx").absolutePath,
+        recModelPath = File(assetsDir, "PP-OCRv6_small_rec.onnx").absolutePath,
+        dictLines = File(assetsDir, "ppocrv6_dict.txt").readLines(),
+      ).use { it.recognize(RgbImage(pixels, buffered.width, buffered.height)) }
+
+    println("manga: turned ${result.rotationDegrees}, ${result.lines.map { it.text }}")
+
+    assertTrue("should have turned the pixels", result.rotationDegrees != 0)
+    val texts = result.lines.map { it.text }
+    for (column in listOf("吾輩は猫である。", "名前はまだ無い。", "どこで生れたか", "とんと見当がつかぬ。")) {
+      assertTrue("missing vertical column '$column' in $texts", texts.contains(column))
+    }
+    // Turning the image is what makes the columns readable, and it is exactly what breaks the
+    // caption unless the upright pass is merged back in.
+    assertTrue("the horizontal caption was lost: $texts", texts.any { it.contains("夏目漱石") })
   }
 
   @Test

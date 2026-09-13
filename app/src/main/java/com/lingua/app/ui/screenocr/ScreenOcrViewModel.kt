@@ -60,6 +60,8 @@ data class ScreenOcrUiState(
   val editedText: String? = null,
   val result: ScreenOcrResult? = null,
   val isTranslating: Boolean = false,
+  /** Non-zero when the text only became readable after turning the pixels. */
+  val rotationDegrees: Int = 0,
   val error: ErrorMessage? = null,
   val errorDetail: String? = null,
   val hasProfile: Boolean = false,
@@ -302,6 +304,7 @@ class ScreenOcrViewModel(private val container: AppContainer, private val shared
             current.copy(
               phase = ScreenOcrPhase.Ready,
               paragraphs = paragraphs,
+              rotationDegrees = recognized.rotationDegrees,
               // Nothing is pre-selected: a screen also holds icons the detector reads as garbage,
               // and sending that to a paid endpoint would be worse than one extra tap.
               selected = emptySet(),

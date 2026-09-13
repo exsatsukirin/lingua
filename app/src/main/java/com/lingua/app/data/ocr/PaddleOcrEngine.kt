@@ -7,6 +7,7 @@ import ai.onnxruntime.TensorInfo
 import com.lingua.app.data.ocr.paddle.CtcDecoder
 import com.lingua.app.data.ocr.paddle.DetPostProcessor
 import com.lingua.app.data.ocr.paddle.DetPreProcessor
+import com.lingua.app.data.ocr.paddle.OcrGeometry
 import com.lingua.app.data.ocr.paddle.RecProcessor
 import java.io.Closeable
 import java.nio.ByteBuffer
@@ -54,21 +55,106 @@ class PaddleOcrEngine(
     OcrDictionary.characters(dictLines, info.shape.last().toInt())
   }
 
-  /** Detects and recognizes every text line in [image], in reading order. */
+  /**
+   * Detects and recognizes every text line in [image], in reading order.
+   *
+   * The recognizer only reads horizontal lines, so when the upright pass is not convincing the
+   * screen is tried again quarter-turned and the best-scoring orientation wins. Boxes are mapped
+   * back to the caller's coordinates either way, and the fast path costs nothing extra: an upright
+   * screen that reads cleanly is never re-run.
+   */
   fun recognize(image: RgbImage): OcrResult {
+    val upright = runTurn(image, QuarterTurn.None)
+    if (upright.score >= CONFIDENT_MEAN_CONFIDENCE) return upright.result
+
+    var best = upright
+    for (turn in QuarterTurn.retries) {
+      val candidate = runTurn(image, turn)
+      if (candidate.score > best.score + ROTATION_SWITCH_MARGIN) best = candidate
+    }
+    if (best === upright) return upright.result
+    return merge(upright.result, best.result)
+  }
+
+  /**
+   * Keeps the better reading of each box when the screen holds both orientations at once.
+   *
+   * Manga dialogue is vertical while its captions and sound effects are horizontal; turning the
+   * whole image rescues one at the cost of the other, so boxes that land on top of each other are
+   * settled by confidence.
+   */
+  private fun merge(upright: OcrResult, turned: OcrResult): OcrResult {
+    val candidates =
+      (turned.lines + upright.lines).filter { it.text.isNotBlank() }.sortedByDescending { it.confidence }
+    val kept = ArrayList<OcrLine>(candidates.size)
+    for (line in candidates) {
+      if (kept.any { overlaps(it.quad, line.quad) }) continue
+      kept.add(line)
+    }
+    return OcrResult(
+      lines = sortLinesReadingOrder(kept),
+      imageWidth = upright.imageWidth,
+      imageHeight = upright.imageHeight,
+      rotationDegrees = turned.rotationDegrees,
+    )
+  }
+
+  /** True when the boxes cover mostly the same pixels. */
+  private fun overlaps(a: Quad, b: Quad): Boolean {
+    val overlapX = minOf(a.maxX, b.maxX) - maxOf(a.minX, b.minX)
+    val overlapY = minOf(a.maxY, b.maxY) - maxOf(a.minY, b.minY)
+    if (overlapX <= 0f || overlapY <= 0f) return false
+    val smaller = minOf(a.width * a.height, b.width * b.height)
+    return smaller > 0f && (overlapX * overlapY) / smaller > OVERLAP_RATIO
+  }
+
+  private class Scored(val result: OcrResult, val score: Float)
+
+  /** One detection + recognition pass over `image.rotated(turn)`, reported in [image]'s frame. */
+  private fun runTurn(image: RgbImage, turn: QuarterTurn): Scored {
+    val source = image.rotated(turn)
+    val quads = detect(source)
+    if (quads.isEmpty()) {
+      return Scored(OcrResult(emptyList(), image.width, image.height, turn.degrees), 0f)
+    }
+
+    val lines =
+      recognizeQuads(source, quads).map { line ->
+        val mapped =
+          if (turn == QuarterTurn.None) line.quad
+          else OcrGeometry.orderQuad(line.quad.unrotated(turn, image.width, image.height))
+        line.copy(quad = mapped)
+      }
+    val ordered = sortLinesReadingOrder(lines)
+    return Scored(
+      OcrResult(ordered, image.width, image.height, turn.degrees),
+      meanConfidence(ordered),
+    )
+  }
+
+  /** How readable the pass was; junk from a wrong orientation scores well under 0.6. */
+  private fun meanConfidence(lines: List<OcrLine>): Float {
+    val meaningful = lines.filter { it.text.isNotBlank() }
+    if (meaningful.isEmpty()) return 0f
+    return meaningful.map { it.confidence }.average().toFloat()
+  }
+
+  private fun detect(image: RgbImage): List<Quad> {
     val prepared = DetPreProcessor.prepare(image, detLimitSide)
     val probability = runDetection(prepared)
-    val quads =
-      detPostProcessor
-        .extract(
-          prob = probability.data,
-          width = probability.width,
-          height = probability.height,
-          toSourceX = prepared.toSourceX,
-          toSourceY = prepared.toSourceY,
-        )
-        .let(::sortReadingOrder)
-    if (quads.isEmpty()) return OcrResult(emptyList(), image.width, image.height)
+    return detPostProcessor
+      .extract(
+        prob = probability.data,
+        width = probability.width,
+        height = probability.height,
+        toSourceX = prepared.toSourceX,
+        toSourceY = prepared.toSourceY,
+      )
+      .let(::sortReadingOrder)
+  }
+
+  private fun recognizeQuads(image: RgbImage, quads: List<Quad>): List<OcrLine> {
+    if (quads.isEmpty()) return emptyList()
 
     val lines = arrayOfNulls<OcrLine>(quads.size)
     for (chunk in planChunks(quads)) {
@@ -76,7 +162,7 @@ class PaddleOcrEngine(
       val decoded = recognizeChunk(image, chunkQuads)
       chunk.forEachIndexed { position, quadIndex -> lines[quadIndex] = decoded[position] }
     }
-    return OcrResult(lines.filterNotNull(), image.width, image.height)
+    return lines.filterNotNull()
   }
 
   /**
@@ -166,12 +252,24 @@ class PaddleOcrEngine(
     }
   }
 
-  private fun sortReadingOrder(quads: List<Quad>): List<Quad> {
-    if (quads.size < 2) return quads
-    val heights = quads.map { it.edgeHeight }.sorted()
-    val median = heights[heights.size / 2].coerceAtLeast(1f)
-    val band = (median * 0.6f).coerceAtLeast(1f)
-    return quads.sortedWith(compareBy({ (it.centerY / band).toInt() }, { it.centerX }))
+  private fun sortReadingOrder(quads: List<Quad>): List<Quad> =
+    if (quads.size < 2) quads else quads.sortedWith(readingOrder(quads.map { it.edgeHeight }))
+
+  private fun sortLinesReadingOrder(lines: List<OcrLine>): List<OcrLine> {
+    if (lines.size < 2) return lines
+    val order = readingOrder(lines.map { it.quad.edgeHeight })
+    return lines.sortedWith(Comparator { a, b -> order.compare(a.quad, b.quad) })
+  }
+
+  /**
+   * Groups boxes into rows so left-to-right ordering does not jump between columns of different
+   * heights; the band is a fraction of the median line height.
+   */
+  private fun readingOrder(heights: List<Float>): Comparator<Quad> {
+    if (heights.isEmpty()) return compareBy({ it.centerY }, { it.centerX })
+    val sorted = heights.sorted()
+    val band = (sorted[sorted.size / 2].coerceAtLeast(1f) * 0.6f).coerceAtLeast(1f)
+    return compareBy({ (it.centerY / band).toInt() }, { it.centerX })
   }
 
   /** DBNet exports usually include the sigmoid, but a raw-logit export must still work. */
@@ -200,6 +298,18 @@ class PaddleOcrEngine(
     const val DEFAULT_DET_LIMIT_SIDE = 960
 
     const val DEFAULT_REC_BATCH_SIZE = 8
+
+    /**
+     * An upright pass at or above this mean confidence is trusted as-is. Clean screenshots score
+     * ~0.99 while a wrong orientation scores 0.15-0.6, so the gap is wide.
+     */
+    private const val CONFIDENT_MEAN_CONFIDENCE = 0.9f
+
+    /** A turned pass has to be clearly better before its boxes are reported. */
+    private const val ROTATION_SWITCH_MARGIN = 0.05f
+
+    /** Fraction of the smaller box two readings must share to be treated as the same text. */
+    private const val OVERLAP_RATIO = 0.5f
 
     /**
      * Recognition output is `batch x (width / 8) x 18710` floats. Six million floats is ~24MB, which

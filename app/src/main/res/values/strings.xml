@@ -221,6 +221,7 @@
     <string name="screen_ocr_idle_body">Capture the screen or pick a screenshot, then tap the text you want translated.</string>
     <string name="screen_ocr_recognizing">Reading text…</string>
     <string name="screen_ocr_hint_tap">Tap a block to select it; pinch to zoom.</string>
+    <string name="screen_ocr_rotated">Read after turning the image %1$d°</string>
     <string name="screen_ocr_selected_count">%1$d selected</string>
     <string name="screen_ocr_select_all">Select all</string>
     <string name="screen_ocr_clear_selection">Clear</string>

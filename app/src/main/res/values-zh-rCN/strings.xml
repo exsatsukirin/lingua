@@ -221,6 +221,7 @@
     <string name="screen_ocr_idle_body">截取屏幕或选择一张截图，然后点选需要翻译的文字。</string>
     <string name="screen_ocr_recognizing">正在识别文字…</string>
     <string name="screen_ocr_hint_tap">点按文字块进行选择，双指可缩放。</string>
+    <string name="screen_ocr_rotated">已旋转 %1$d° 后识别</string>
     <string name="screen_ocr_selected_count">已选 %1$d 段</string>
     <string name="screen_ocr_select_all">全选</string>
     <string name="screen_ocr_clear_selection">清空</string>

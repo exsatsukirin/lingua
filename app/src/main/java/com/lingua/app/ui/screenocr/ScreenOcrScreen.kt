@@ -174,6 +174,21 @@ fun ScreenOcrScreen(
         onPickSource = { showSourcePicker = true },
       )
 
+      if (state.rotationDegrees != 0) {
+        Surface(
+          color = MaterialTheme.colorScheme.secondaryContainer,
+          shape = MaterialTheme.shapes.small,
+          modifier = Modifier.padding(start = 16.dp, bottom = 4.dp),
+        ) {
+          Text(
+            text = stringResource(R.string.screen_ocr_rotated, state.rotationDegrees),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+          )
+        }
+      }
+
       state.error?.let { error ->
         ErrorCard(
           message = error,

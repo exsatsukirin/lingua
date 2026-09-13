@@ -80,7 +80,16 @@ class Quad(xs: FloatArray, ys: FloatArray) {
 data class OcrLine(val text: String, val quad: Quad, val confidence: Float)
 
 /** Everything one recognition pass produced, in reading order. */
-data class OcrResult(val lines: List<OcrLine>, val imageWidth: Int, val imageHeight: Int) {
+data class OcrResult(
+  val lines: List<OcrLine>,
+  val imageWidth: Int,
+  val imageHeight: Int,
+  /**
+   * Clockwise rotation the pixels had to be given before the text could be read; 0 for an upright
+   * screen. Boxes are always reported in the caller's coordinates.
+   */
+  val rotationDegrees: Int = 0,
+) {
   val isEmpty: Boolean get() = lines.isEmpty()
 
   val fullText: String get() = lines.joinToString("\n") { it.text }
