@@ -19,6 +19,7 @@ OpenAI 兼容端点（OpenAI、DeepSeek、Moonshot、硅基流动、Ollama、LM 
 | 提示词可定制 | 内置提示词只读不可改（承载 JSON 输出契约），可在其后追加自己的指令，并可预览实际发送的完整提示词 |
 | API 测试 | 连接测试（含 `/models` 探测）、真实翻译测试、模型列表拉取、原始响应查看 |
 | 划词翻译 | 在其他应用里选中文本，系统选区菜单中选「灵译」，即可就地弹出译文，无需切换应用 |
+| 屏幕取词 | 截屏或分享一张截图进去，本地 OCR 识别文字块，点选后翻译；图片与文字都不离开设备 |
 | API Key 加密 | AndroidKeyStore AES/GCM 加密后落盘，且从备份中排除 |
 | 中英双语界面 | 默认英文，`values-zh-rCN` 提供完整简体中文 |
 
@@ -60,6 +61,22 @@ adb shell am start -n com.lingua.app/.MainActivity
 覆盖：模型响应解析容错（围栏 JSON、夹带散文、键名变体、纯文本回退）、端点 URL 推导
 （含 Azure 风格完整 URL 与 query string）、错误映射、语言目录与 locale 匹配、提示词构造、
 界面状态机、请求头解析与服务商预置。
+
+OCR 部分另有：多边形几何（旋转卡壳最小外接矩形、unclip 外扩、四点透视裁剪）、CTC 贪心解码、
+段落合并、字典字符表校验、语种覆盖一致性，以及**用桌面版 ONNX Runtime 跑真实 PP-OCRv6 模型**
+的端到端识别测试（对内置样例截图断言识别出的文字）。
+
+### 仪器测试
+
+```bash
+./gradlew :app:connectedDebugAndroidTest
+```
+
+覆盖：模型装载与 SHA-256 校验、设备端真实识别（内置样例截图，断言文字内容与耗时上限）、
+屏幕取词界面（空态、选中计数、按钮可用性）、历史与导航。
+
+构建时请保持 `android.injected.androidTest.leaveApksInstalledAfterRun=true`：否则测试结束会
+卸载应用，连带清掉 DataStore 里经 Keystore 加密的 API Key，而 Keystore 密钥不可恢复。
 
 ### 本地 mock 端点
 
@@ -177,6 +194,53 @@ UI (Compose)  →  ViewModel (StateFlow)  →  TranslationRepository ─┬→ L
 | 自带选区工具栏的应用（部分浏览器、Flutter 应用） | ❌ |
 | Compose `SelectionContainer` 的文本 | ❌ Compose 的浮动工具栏不加载 PROCESS_TEXT 项 |
 
+## 屏幕取词（本地 OCR）
+
+翻译页右上角的截屏图标进入。截取当前屏幕，或者从系统分享面板把一张截图直接发给灵译
+（`ACTION_SEND` / `image/*`），也可以用系统照片选择器挑一张图片。
+
+流程：**截屏或选图 → 本地识别 → 点选文字块 → 走同一个 `TranslationRepository` 翻译**。
+识别在设备上完成，图片不会上传；只有你选中的文字会进入你配置的 LLM 端点，译文同样进历史。
+
+| 决策 | 取值 | 理由 |
+| --- | --- | --- |
+| OCR 引擎 | PaddleOCR **PP-OCRv6 small**（det + rec） | Apache-2.0、完全离线、无 GMS 依赖；单个识别模型覆盖中／繁／日／英与 50 种拉丁系语言 |
+| 推理运行时 | ONNX Runtime 1.27.0（`onnxruntime-android`） | 上游 RapidOCR 生态与多个生产应用验证过的组合 |
+| 预处理／后处理 | 纯 Kotlin，不引入 OpenCV | DB 后处理（连通域 + 最小外接矩形 + unclip）与四点透视裁剪都可控且能跑 JVM 单测 |
+| 模型分发 | 内置进 APK，首次使用时校验 SHA-256 后拷入 `filesDir` | 装完即可离线识别，没有下载失败路径 |
+
+体积：识别模型 `det 9.4 MB + rec 20.2 MB + 字典 75 KB`，ONNX Runtime 原生库 arm64 约 28 MB。
+release APK 因此从 13.8 MB 涨到约 **73 MB**，且只包含 `arm64-v8a`（`x86_64` 仅用于模拟器／
+Waydroid 的 debug 构建）。若在意体积，可换 `PP-OCRv6 tiny`（det 1.9 MB + rec 4.4 MB）换取约
+24 MB，代价是**不支持日文**且中日文准确率从 81.3% 降到 73.5%。
+
+实现要点：
+
+- `PaddleOcrEngine` 只依赖 `ai.onnxruntime` 与普通 `IntArray` 图像，没有 `android.graphics`，
+  因此同一份代码既能跑在设备上，也能在 JVM 单测里用桌面的 ONNX Runtime 跑真实模型。
+- 检测输入按 DBNet 要求把最长边压到 960、两边对齐到 32 的倍数并做 ImageNet 归一化；
+  识别输入把每个文本框透视裁成高 48、按 `(x / 127.5) - 1` 归一化。
+- 识别按**宽度分桶**再分批，并限制单个批次输出大小：识别输出是
+  `batch × (宽 / 8) × 18710` 个 float，八条满宽文本就是 90 MB，真机上会直接 OOM。
+- 每批最多 4 个推理线程；上游实测超过 4 线程在 big.LITTLE 上反而更慢。
+
+Android 14+ 的单次截屏授权：`MediaProjection` 只能交给已经在运行的 `mediaProjection` 类型
+前台服务，且 token 用后即废，所以每次截屏都会弹一次系统确认。`ScreenCaptureService` 取到一帧
+后立刻停止自己。
+
+**语种覆盖**：字典里只有 CJK、假名、拉丁字母和希腊字母 —— **没有韩文、西里尔、阿拉伯、泰文、
+天城文**。上游所说的「50 种语言」指的是 50 种拉丁系语言。选定这些源语言时界面会明确提示，
+而不是返回乱码。
+
+**已知限制**：
+
+| 情况 | 表现 |
+| --- | --- |
+| 竖排 / 旋转 180° 的文本 | 不支持（未引入方向分类模型） |
+| `FLAG_SECURE` 界面（银行、部分应用） | 截出来是纯色，会提示「该界面禁止截屏」 |
+| 图标、头像等非文字区域 | 可能被识别成零散字符，所以默认不预选任何文字块 |
+| 相机拍照识别 | 未实现，可先用系统相机拍完再从分享面板发进来 |
+
 ## 明文流量
 
 `network_security_config.xml` 允许明文 HTTP，因为自建端点（Ollama、LM Studio、局域网网关）
@@ -186,10 +250,20 @@ UI (Compose)  →  ViewModel (StateFlow)  →  TranslationRepository ─┬→ L
 ## 已知限制
 
 - 译文为一次性返回，暂不支持流式输出。
-- 无 TTS / 语音输入 / 拍照 OCR / 术语表。
-- `material-icons-extended` 使得 debug APK 偏大（约 21 MB）；release 构建开启 R8 后会自动裁剪。
-- 单元测试覆盖纯逻辑（解析、URL、状态机、表单）；ViewModel 与 Repository 的协作目前由
-  `journeys/lingua_journey.xml` 在真机上覆盖。
+- 无 TTS / 语音输入 / 相机拍照 OCR / 术语表。
+- release APK 约 73 MB，其中绝大部分是内置的 PP-OCRv6 模型与 ONNX Runtime 原生库；且仅包含
+  `arm64-v8a`（32 位 ARM 设备暂不支持）。
+- 屏幕取词目前不覆盖韩文、俄文、阿拉伯文、泰文等非拉丁字母语系（见上）。
+- 单元测试覆盖纯逻辑（解析、URL、状态机、表单、OCR 几何与 CTC 解码）；ViewModel 与
+  Repository 的协作由真机验收覆盖。
+
+## 第三方组件
+
+| 组件 | 许可 | 用途 |
+| --- | --- | --- |
+| [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) PP-OCRv6 模型 | Apache-2.0 | 屏幕文字检测与识别（权重已转换为 ONNX） |
+| [ONNX Runtime](https://github.com/microsoft/onnxruntime) | MIT | 端侧推理 |
+| [RapidOCR](https://github.com/RapidAI/RapidOCR) | Apache-2.0 | ONNX 版模型来源与模型清单参考 |
 
 ## 许可证
 

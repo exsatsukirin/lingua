@@ -211,4 +211,40 @@
     <string name="preset_ollama">Ollama</string>
     <string name="preset_custom">Custom</string>
 
+    <!-- Screen text (on-device OCR) -->
+    <string name="screen_ocr_title">Screen text</string>
+    <string name="screen_ocr_open">Translate from screen</string>
+    <string name="screen_ocr_capture">Capture screen</string>
+    <string name="screen_ocr_pick_image">Choose image</string>
+    <string name="screen_ocr_retake">Capture again</string>
+    <string name="screen_ocr_idle_title">Read text off the screen</string>
+    <string name="screen_ocr_idle_body">Capture the screen or pick a screenshot, then tap the text you want translated.</string>
+    <string name="screen_ocr_recognizing">Reading text…</string>
+    <string name="screen_ocr_hint_tap">Tap a block to select it; pinch to zoom.</string>
+    <string name="screen_ocr_selected_count">%1$d selected</string>
+    <string name="screen_ocr_select_all">Select all</string>
+    <string name="screen_ocr_clear_selection">Clear</string>
+    <string name="screen_ocr_edit_source">Edit text</string>
+    <string name="screen_ocr_edit_title">Recognized text</string>
+    <string name="screen_ocr_translate">Translate</string>
+    <string name="screen_ocr_translating">Translating…</string>
+    <string name="screen_ocr_empty_title">No text found</string>
+    <string name="screen_ocr_empty_body">Try capturing again, or pick a sharper screenshot.</string>
+    <string name="screen_ocr_import_failed">Could not read that image.</string>
+    <string name="screen_ocr_script_unsupported">The on-device model cannot read %1$s yet. It covers Chinese, Japanese, English and other Latin-script languages.</string>
+    <string name="screen_ocr_failed_denied">Screen capture was not allowed.</string>
+    <string name="screen_ocr_failed_empty">This screen cannot be captured — the app blocks screenshots.</string>
+    <string name="screen_ocr_failed_timeout">Screen capture timed out. Try again.</string>
+    <string name="screen_ocr_failed_model">The on-device text model could not be loaded.</string>
+
+    <!-- Screen capture foreground service -->
+    <string name="screen_capture_channel">Screen capture</string>
+    <string name="screen_capture_notification_title">Capturing the screen once</string>
+    <string name="screen_capture_notification_text">Nothing is recorded; the frame is only used for text recognition.</string>
+
+    <!-- On-device OCR model row in settings -->
+    <string name="settings_section_ocr">Screen text</string>
+    <string name="settings_ocr_model">On-device text model</string>
+    <string name="settings_ocr_model_summary">PP-OCRv6 small · bundled · works offline</string>
+
 </resources>

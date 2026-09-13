@@ -211,4 +211,40 @@
     <string name="preset_ollama">Ollama</string>
     <string name="preset_custom">自定义</string>
 
+    <!-- Screen text (on-device OCR) -->
+    <string name="screen_ocr_title">屏幕取词</string>
+    <string name="screen_ocr_open">截屏翻译</string>
+    <string name="screen_ocr_capture">截取屏幕</string>
+    <string name="screen_ocr_pick_image">选择图片</string>
+    <string name="screen_ocr_retake">重新截取</string>
+    <string name="screen_ocr_idle_title">从屏幕读取文字</string>
+    <string name="screen_ocr_idle_body">截取屏幕或选择一张截图，然后点选需要翻译的文字。</string>
+    <string name="screen_ocr_recognizing">正在识别文字…</string>
+    <string name="screen_ocr_hint_tap">点按文字块进行选择，双指可缩放。</string>
+    <string name="screen_ocr_selected_count">已选 %1$d 段</string>
+    <string name="screen_ocr_select_all">全选</string>
+    <string name="screen_ocr_clear_selection">清空</string>
+    <string name="screen_ocr_edit_source">编辑原文</string>
+    <string name="screen_ocr_edit_title">识别出的文字</string>
+    <string name="screen_ocr_translate">翻译</string>
+    <string name="screen_ocr_translating">翻译中…</string>
+    <string name="screen_ocr_empty_title">未识别到文字</string>
+    <string name="screen_ocr_empty_body">请重新截取，或换一张更清晰的截图。</string>
+    <string name="screen_ocr_import_failed">无法读取这张图片。</string>
+    <string name="screen_ocr_script_unsupported">本机模型暂不支持 %1$s：目前支持中文、日文、英文以及其他拉丁字母语言。</string>
+    <string name="screen_ocr_failed_denied">未获得截屏权限。</string>
+    <string name="screen_ocr_failed_empty">无法截取该界面——该应用禁止截屏。</string>
+    <string name="screen_ocr_failed_timeout">截屏超时，请重试。</string>
+    <string name="screen_ocr_failed_model">本机文字识别模型加载失败。</string>
+
+    <!-- Screen capture foreground service -->
+    <string name="screen_capture_channel">屏幕截取</string>
+    <string name="screen_capture_notification_title">正在截取屏幕</string>
+    <string name="screen_capture_notification_text">不会录制任何内容，这一帧仅用于文字识别。</string>
+
+    <!-- On-device OCR model row in settings -->
+    <string name="settings_section_ocr">屏幕取词</string>
+    <string name="settings_ocr_model">本机文字识别模型</string>
+    <string name="settings_ocr_model_summary">PP-OCRv6 small · 已内置 · 可离线使用</string>
+
 </resources>

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Screenshot
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Star
@@ -89,6 +90,7 @@ fun TranslateScreen(
   onSave: () -> Unit,
   onExample: (String) -> Unit,
   onOpenSettings: () -> Unit,
+  onOpenScreenOcr: () -> Unit,
 ) {
   val context = LocalContext.current
   val clipboard = LocalClipboard.current
@@ -120,6 +122,14 @@ fun TranslateScreen(
       TopAppBar(
         title = { Text(stringResource(R.string.translate_title)) },
         windowInsets = WindowInsets(0, 0, 0, 0),
+        actions = {
+          IconButton(onClick = onOpenScreenOcr) {
+            Icon(
+              imageVector = Icons.Outlined.Screenshot,
+              contentDescription = stringResource(R.string.screen_ocr_open),
+            )
+          }
+        },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
       )
     },

@@ -18,7 +18,14 @@ android {
     }
 
     buildTypes {
+        debug {
+            // x86_64 keeps the OCR feature testable on the Waydroid container, arm64 matches real phones.
+            ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        }
         release {
+            // The ONNX Runtime native libraries are 28MB (arm64) / 34MB (x86_64) each; shipping the
+            // full ABI set would add ~116MB to the APK.
+            ndk { abiFilters += "arm64-v8a" }
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -34,10 +41,17 @@ android {
       shaders = false
     }
 
+    androidResources {
+      // ONNX graphs are already dense; deflating them only costs startup time.
+      noCompress += "onnx"
+    }
+
     packaging {
       resources {
         excludes += "/META-INF/{AL2.0,LGPL2.1}"
       }
+      // Keep the 28MB native library memory-mapped from the APK instead of extracted to data.
+      jniLibs { useLegacyPackaging = false }
     }
 }
 
@@ -78,6 +92,9 @@ dependencies {
   implementation(libs.okhttp)
   implementation(libs.kotlinx.serialization.json)
 
+  // On-device OCR (PP-OCRv6 detection + recognition)
+  implementation(libs.onnxruntime.android)
+
   // Navigation
   implementation(libs.androidx.navigation3.ui)
   implementation(libs.androidx.navigation3.runtime)
@@ -86,6 +103,8 @@ dependencies {
   // Local tests: jUnit, coroutines
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
+  // Runs the real OCR graphs on the host JVM, so the pipeline is testable without a device.
+  testImplementation(libs.onnxruntime.jvm)
 
   // Instrumented tests
   androidTestImplementation(libs.androidx.compose.ui.test.junit4)

@@ -1,5 +1,8 @@
 package com.lingua.app.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -18,6 +21,7 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,6 +41,9 @@ import com.lingua.app.ui.history.HistoryScreen
 import com.lingua.app.ui.history.HistoryViewModel
 import com.lingua.app.ui.nav.ApiEditorKey
 import com.lingua.app.ui.nav.HomeKey
+import com.lingua.app.ui.nav.ScreenOcrKey
+import com.lingua.app.ui.screenocr.ScreenOcrScreen
+import com.lingua.app.ui.screenocr.ScreenOcrViewModel
 import com.lingua.app.ui.settings.ApiProfileEditorScreen
 import com.lingua.app.ui.settings.ApiProfileEditorViewModel
 import com.lingua.app.ui.settings.SettingsScreen
@@ -51,8 +58,20 @@ private enum class HomeTab(val labelRes: Int, val icon: ImageVector) {
 }
 
 @Composable
-fun LinguaApp(container: AppContainer) {
+fun LinguaApp(
+  container: AppContainer,
+  sharedImageUri: String? = null,
+  onSharedImageHandled: () -> Unit = {},
+) {
   val backStack = rememberNavBackStack(HomeKey)
+
+  // A screenshot shared into the app opens screen text recognition directly.
+  LaunchedEffect(sharedImageUri) {
+    if (sharedImageUri != null) {
+      backStack.add(ScreenOcrKey(sharedImageUri))
+      onSharedImageHandled()
+    }
+  }
 
   NavDisplay(
     backStack = backStack,
@@ -64,6 +83,7 @@ fun LinguaApp(container: AppContainer) {
           HomeShell(
             container = container,
             onOpenApiEditor = { profileId -> backStack.add(ApiEditorKey(profileId)) },
+            onOpenScreenOcr = { backStack.add(ScreenOcrKey()) },
           )
         }
         entry<ApiEditorKey> { key ->
@@ -96,12 +116,58 @@ fun LinguaApp(container: AppContainer) {
             onBack = onDone,
           )
         }
+        entry<ScreenOcrKey> { key ->
+          val screenOcrViewModel: ScreenOcrViewModel =
+            viewModel(
+              key = "screen-ocr-${key.imageUri ?: "new"}",
+              factory = ScreenOcrViewModel.factory(container, key.imageUri),
+            )
+          val state by screenOcrViewModel.state.collectAsStateWithLifecycle()
+
+          // The ViewModel outlives this entry, so re-entering starts from a clean result.
+          LaunchedEffect(Unit) { screenOcrViewModel.onEnter() }
+
+          val captureLauncher =
+            rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+              screenOcrViewModel.onCaptureResult(result.resultCode, result.data)
+            }
+          val imagePicker =
+            rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+              uri?.let(screenOcrViewModel::importImage)
+            }
+
+          ScreenOcrScreen(
+            state = state,
+            onBack = { backStack.removeLastOrNull() },
+            onCaptureRequest = { captureLauncher.launch(screenOcrViewModel.consentIntent()) },
+            onPickImage = {
+              imagePicker.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+              )
+            },
+            onRetake = screenOcrViewModel::retake,
+            onToggleParagraph = screenOcrViewModel::toggleParagraph,
+            onSelectAll = screenOcrViewModel::selectAll,
+            onClearSelection = screenOcrViewModel::clearSelection,
+            onEditSource = screenOcrViewModel::editSource,
+            onTargetLanguage = screenOcrViewModel::setTargetLanguage,
+            onSourceOverride = screenOcrViewModel::setSourceOverride,
+            onTranslate = screenOcrViewModel::translate,
+            onRetry = screenOcrViewModel::retry,
+            onToggleFavorite = screenOcrViewModel::toggleFavorite,
+            onDismissError = screenOcrViewModel::dismissError,
+          )
+        }
       },
   )
 }
 
 @Composable
-private fun HomeShell(container: AppContainer, onOpenApiEditor: (String?) -> Unit) {
+private fun HomeShell(
+  container: AppContainer,
+  onOpenApiEditor: (String?) -> Unit,
+  onOpenScreenOcr: () -> Unit,
+) {
   var selectedTabName by rememberSaveable { mutableStateOf(HomeTab.Translate.name) }
   val selectedTab = HomeTab.entries.firstOrNull { it.name == selectedTabName } ?: HomeTab.Translate
 
@@ -162,6 +228,7 @@ private fun HomeShell(container: AppContainer, onOpenApiEditor: (String?) -> Uni
                 onSave = translateViewModel::saveToHistory,
                 onExample = translateViewModel::setExample,
                 onOpenSettings = { selectedTabName = HomeTab.Settings.name },
+                onOpenScreenOcr = onOpenScreenOcr,
               )
             }
             HomeTab.History -> {

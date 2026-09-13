@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -194,6 +195,10 @@ fun SettingsScreen(
         Text(stringResource(R.string.settings_api_add), modifier = Modifier.padding(start = 8.dp))
       }
 
+      SectionHeader(stringResource(R.string.settings_section_ocr))
+
+      OcrModelCard()
+
       SectionHeader(stringResource(R.string.settings_section_about))
 
       AboutCard()
@@ -283,6 +288,42 @@ private fun ProfileCard(
         },
         colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
       )
+    }
+  }
+}
+
+/** Read-only summary of the bundled on-device text model. */
+@Composable
+private fun OcrModelCard() {
+  Card(
+    shape = MaterialTheme.shapes.large,
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    modifier = Modifier.fillMaxWidth(),
+  ) {
+    Row(
+      modifier = Modifier.padding(16.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+      Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.small) {
+        Icon(
+          Icons.Outlined.TextFields,
+          contentDescription = null,
+          tint = MaterialTheme.colorScheme.onPrimaryContainer,
+          modifier = Modifier.padding(8.dp).size(20.dp),
+        )
+      }
+      Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+          text = stringResource(R.string.settings_ocr_model),
+          style = MaterialTheme.typography.titleSmall,
+        )
+        Text(
+          text = stringResource(R.string.settings_ocr_model_summary),
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
     }
   }
 }
